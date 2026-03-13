@@ -29,35 +29,25 @@ export function RoundTable() {
   // Auto-speak completed messages with ElevenLabs
   useEffect(() => {
     if (!session) return;
-
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || lastMsg.id === lastSpokenRef.current) return;
     lastSpokenRef.current = lastMsg.id;
 
-    // Find seat index and participant
     const seatIndex = session.config.participants.findIndex(
       (p) => p.id === lastMsg.participantId
     );
     if (seatIndex < 0) return;
     const participant = session.config.participants[seatIndex]!;
 
-    // Don't TTS human messages
     if (participant.isHuman) {
-      // Signal ready immediately for human turns
       setTimeout(() => signalReady(), 500);
       return;
     }
 
-    if (!ttsEnabled) {
-      // signalReady is handled by the store's await:ready handler
-      return;
-    }
+    if (!ttsEnabled) return;
 
-    // Cancel any ongoing TTS
     cancelTTSRef.current?.();
-
     const voiceId = participant.voiceId || DEFAULT_VOICE_IDS[seatIndex] || DEFAULT_VOICE_IDS[0]!;
-
     setSpeakingTTS(lastMsg.participantId);
 
     let mouthToggle = false;
@@ -69,13 +59,11 @@ export function RoundTable() {
       if (event === "end") {
         setSpeakingTTS(null);
         setMouthOpen(lastMsg.participantId, false);
-        // TTS finished — signal server to proceed
         signalReady();
       }
     }, speechRate);
   }, [messages, ttsEnabled, speechRate, session, setSpeakingTTS, setMouthOpen, signalReady]);
 
-  // Cancel TTS when discussion stops
   useEffect(() => {
     if (!isActive) {
       cancelTTSRef.current?.();
@@ -86,43 +74,40 @@ export function RoundTable() {
   if (!session) return null;
 
   const { participants } = session.config;
-  // Filter out chair for seat positioning — chair sits separately
   const seatParticipants = participants.filter((p) => !p.isChair);
   const chairParticipant = participants.find((p) => p.isChair);
 
-  const tableSize = Math.min(600, Math.max(400, seatParticipants.length * 100));
+  const tableSize = Math.min(560, Math.max(380, seatParticipants.length * 90));
   const radius = tableSize / 2;
+  const totalHeight = tableSize + (chairParticipant ? 80 : 0);
 
   const humanParticipant = waitingForHuman
     ? participants.find((p) => p.id === currentSpeakerId && p.isHuman)
     : null;
 
   return (
-    <div className="relative" style={{ width: tableSize, height: tableSize + (chairParticipant ? 60 : 0) }}>
-      {/* Chair position — top center, inside the table edge */}
+    <div className="relative" style={{ width: tableSize + 120, height: totalHeight + 60 }}>
+      {/* Chair — centered above table */}
       {chairParticipant && (() => {
-        const isSpeaking =
-          currentSpeakerId === chairParticipant.id && isActive && !waitingForHuman;
+        const isSpeaking = currentSpeakerId === chairParticipant.id && isActive && !waitingForHuman;
         const streamText = streamingContent[chairParticipant.id];
-        const lastMessage = [...messages]
-          .reverse()
-          .find((m) => m.participantId === chairParticipant.id);
+        const lastMessage = [...messages].reverse().find((m) => m.participantId === chairParticipant.id);
 
         return (
           <>
             <ParticipantSeat
               participant={chairParticipant}
               isSpeaking={isSpeaking}
-              x={radius}
-              y={20}
+              x={(tableSize + 120) / 2}
+              y={30}
             />
             {(isSpeaking && streamText) || (!isSpeaking && lastMessage) ? (
               <MessageBubble
                 content={isSpeaking ? streamText ?? "" : lastMessage?.content ?? ""}
                 color={chairParticipant.color}
-                x={radius}
-                y={20}
-                tableSize={tableSize}
+                x={(tableSize + 120) / 2}
+                y={30}
+                tableSize={tableSize + 120}
                 isStreaming={isSpeaking}
               />
             ) : null}
@@ -130,36 +115,38 @@ export function RoundTable() {
         );
       })()}
 
-      {/* Felt table */}
+      {/* Table surface */}
       <div
-        className="absolute rounded-full felt-bg border-8 border-amber-900/60 shadow-2xl"
+        className="absolute rounded-full"
         style={{
-          top: chairParticipant ? 60 : 0,
-          left: 0,
+          top: chairParticipant ? 80 : 20,
+          left: 60,
           width: tableSize,
           height: tableSize,
-          boxShadow:
-            "inset 0 0 60px rgba(0,0,0,0.4), 0 0 40px rgba(0,0,0,0.5)",
+          background: "radial-gradient(ellipse at center, rgba(20,35,25,0.9) 0%, rgba(10,18,14,0.95) 60%, rgba(5,10,8,1) 100%)",
+          boxShadow: "inset 0 0 80px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.4), 0 0 120px rgba(10,132,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)",
         }}
       />
 
-      {/* Gold rim */}
+      {/* Inner ring */}
       <div
-        className="absolute rounded-full border border-gold/30"
+        className="absolute rounded-full"
         style={{
-          top: chairParticipant ? 64 : 4,
-          left: 4,
-          width: tableSize - 8,
-          height: tableSize - 8,
+          top: (chairParticipant ? 80 : 20) + 8,
+          left: 68,
+          width: tableSize - 16,
+          height: tableSize - 16,
+          border: "1px solid rgba(255,214,10,0.12)",
         }}
       />
 
-      {/* Center content — offset for chair */}
+      {/* Center content */}
       <div
         className="absolute"
         style={{
-          top: chairParticipant ? 60 : 0,
-          left: 0,
+          top: chairParticipant ? 80 : 20,
+          left: 60,
           width: tableSize,
           height: tableSize,
         }}
@@ -167,36 +154,30 @@ export function RoundTable() {
         <TableCenter />
       </div>
 
-      {/* Panelists positioned around the table */}
+      {/* Panelists around the table */}
       {seatParticipants.map((participant, index) => {
         const angle = (index / seatParticipants.length) * 2 * Math.PI - Math.PI / 2;
         const seatRadius = radius + 60;
-        const tableOffset = chairParticipant ? 60 : 0;
-        const x = Math.cos(angle) * seatRadius + radius;
-        const y = Math.sin(angle) * seatRadius + radius + tableOffset;
+        const tableOffset = chairParticipant ? 80 : 20;
+        const xCenter = 60 + radius;
+        const yCenter = tableOffset + radius;
+        const x = Math.cos(angle) * seatRadius + xCenter;
+        const y = Math.sin(angle) * seatRadius + yCenter;
 
-        const isSpeaking =
-          currentSpeakerId === participant.id && isActive && !waitingForHuman;
+        const isSpeaking = currentSpeakerId === participant.id && isActive && !waitingForHuman;
         const streamText = streamingContent[participant.id];
-        const lastMessage = [...messages]
-          .reverse()
-          .find((m) => m.participantId === participant.id);
+        const lastMessage = [...messages].reverse().find((m) => m.participantId === participant.id);
 
         return (
           <div key={participant.id}>
-            <ParticipantSeat
-              participant={participant}
-              isSpeaking={isSpeaking}
-              x={x}
-              y={y}
-            />
+            <ParticipantSeat participant={participant} isSpeaking={isSpeaking} x={x} y={y} />
             {(isSpeaking && streamText) || (!isSpeaking && lastMessage) ? (
               <MessageBubble
                 content={isSpeaking ? streamText ?? "" : lastMessage?.content ?? ""}
                 color={participant.color}
                 x={x}
                 y={y}
-                tableSize={tableSize}
+                tableSize={tableSize + 120}
                 isStreaming={isSpeaking}
               />
             ) : null}
@@ -204,7 +185,6 @@ export function RoundTable() {
         );
       })}
 
-      {/* Human input overlay */}
       {humanParticipant && (
         <HumanInput
           participantName={humanParticipant.name}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
+import { motion } from "framer-motion";
 import { useDiscussionStore } from "@/stores/discussionStore";
 import { PROVIDERS, PARTICIPANT_COLORS } from "@roundtable/shared";
 import { PERSONAS, CHAIR_PERSONA, type Persona } from "@/lib/personas";
@@ -16,10 +17,10 @@ import type {
 } from "@roundtable/shared";
 
 const QUICK_PRESETS = [
-  { label: "Debate Club", ids: ["strategist", "devils-advocate", "philosopher"] },
-  { label: "Creative Jam", ids: ["optimist", "storyteller", "visionary"] },
-  { label: "Reality Check", ids: ["realist", "comedian", "strategist"] },
-  { label: "Full Table", ids: ["strategist", "comedian", "philosopher", "optimist", "devils-advocate"] },
+  { label: "Debate Club", ids: ["strategist", "devils-advocate", "philosopher"], emoji: "🎯" },
+  { label: "Creative Jam", ids: ["optimist", "storyteller", "visionary"], emoji: "🎨" },
+  { label: "Reality Check", ids: ["realist", "comedian", "strategist"], emoji: "📊" },
+  { label: "Full Table", ids: ["strategist", "comedian", "philosopher", "optimist", "devils-advocate"], emoji: "🎪" },
 ];
 
 export function CreateSessionForm() {
@@ -37,7 +38,6 @@ export function CreateSessionForm() {
 
   useEffect(() => {
     fetchVoices().then(setVoices);
-    // Load default preset
     applyPreset(QUICK_PRESETS[0]!.ids);
   }, []);
 
@@ -98,16 +98,11 @@ export function CreateSessionForm() {
     setParticipants(participants.filter((p) => p.id !== id));
   };
 
-  const updateParticipant = (id: string, updates: Partial<ParticipantConfig>) => {
-    setParticipants(participants.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim() || submitting || participants.length < 2) return;
     setSubmitting(true);
 
-    // Build final participant list, injecting Chair if enabled
     const finalParticipants = [...participants];
     if (enableChair) {
       finalParticipants.unshift({
@@ -141,111 +136,117 @@ export function CreateSessionForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-2xl bg-surface border border-border p-6 space-y-6"
+      className="w-full max-w-xl glass rounded-2xl p-6 space-y-5"
     >
       {error && (
-        <div className="p-3 bg-red-900/20 border border-red-800/50 text-red-400 label-mono">
+        <div className="p-3 rounded-xl bg-accent-red/10 border border-accent-red/20 text-accent-red text-[13px]" style={{ fontFamily: "var(--font-ui)" }}>
           {error}
         </div>
       )}
 
       {/* Topic */}
       <div>
-        <label className="label-mono block mb-2">Discussion Topic</label>
+        <label className="text-[12px] font-medium text-text-secondary block mb-2" style={{ fontFamily: "var(--font-ui)" }}>
+          Discussion Topic
+        </label>
         <input
           type="text"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder='e.g. "Should AI systems have rights?"'
-          className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-border text-white font-[family-name:var(--font-serif)] text-[15px] placeholder:text-text-muted placeholder:italic focus:outline-none focus:border-felt-light"
+          className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[15px] placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:bg-white/[0.06] transition-all"
+          style={{ fontFamily: "var(--font-serif)" }}
           required
         />
       </div>
 
       {/* Description */}
       <div>
-        <label className="label-mono block mb-2">Context <span className="text-text-muted">(optional)</span></label>
+        <label className="text-[12px] font-medium text-text-secondary block mb-2" style={{ fontFamily: "var(--font-ui)" }}>
+          Context <span className="text-text-muted">(optional)</span>
+        </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Additional context or framing..."
           rows={2}
-          className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-border text-white font-[family-name:var(--font-serif)] text-[14px] placeholder:text-text-muted placeholder:italic focus:outline-none focus:border-felt-light resize-none"
+          className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[14px] placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-all resize-none"
+          style={{ fontFamily: "var(--font-serif)" }}
         />
       </div>
 
       {/* Settings row */}
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <div className="flex-1">
-          <label className="label-mono block mb-2">Mode</label>
+          <label className="text-[11px] font-medium text-text-muted block mb-1.5" style={{ fontFamily: "var(--font-ui)" }}>Mode</label>
           <select
             value={turnMode}
             onChange={(e) => setTurnMode(e.target.value as TurnMode)}
-            className="w-full px-3 py-2 bg-[#0a0a0a] border border-border text-white label-mono focus:outline-none focus:border-felt-light"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[13px] focus:outline-none"
+            style={{ fontFamily: "var(--font-ui)" }}
           >
             <option value="round-robin">Round Robin</option>
             <option value="open-floor">Open Floor</option>
           </select>
         </div>
         <div className="flex-1">
-          <label className="label-mono block mb-2">Length</label>
+          <label className="text-[11px] font-medium text-text-muted block mb-1.5" style={{ fontFamily: "var(--font-ui)" }}>Length</label>
           <select
             value={responseLength}
             onChange={(e) => setResponseLength(e.target.value as ResponseLength)}
-            className="w-full px-3 py-2 bg-[#0a0a0a] border border-border text-white label-mono focus:outline-none focus:border-felt-light"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[13px] focus:outline-none"
+            style={{ fontFamily: "var(--font-ui)" }}
           >
-            <option value="brief">Brief (~50w)</option>
-            <option value="short">Short (~100w)</option>
-            <option value="medium">Medium (~200w)</option>
-            <option value="long">Long (~400w)</option>
+            <option value="brief">Brief</option>
+            <option value="short">Short</option>
+            <option value="medium">Medium</option>
+            <option value="long">Long</option>
           </select>
         </div>
         <div className="w-20">
-          <label className="label-mono block mb-2">Turns</label>
+          <label className="text-[11px] font-medium text-text-muted block mb-1.5" style={{ fontFamily: "var(--font-ui)" }}>Turns</label>
           <input
             type="number"
             value={maxTurns}
             onChange={(e) => setMaxTurns(Number(e.target.value))}
             min={2}
             max={100}
-            className="w-full px-3 py-2 bg-[#0a0a0a] border border-border text-white label-mono focus:outline-none focus:border-felt-light"
+            className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[13px] focus:outline-none tabular-nums"
+            style={{ fontFamily: "var(--font-mono)" }}
           />
         </div>
       </div>
 
       {/* Chair toggle */}
-      <div className="flex items-center gap-3 px-1">
-        <button
-          type="button"
+      <div className="flex items-center gap-3 py-1">
+        <div
+          className={`toggle-track ${enableChair ? "active" : ""}`}
           onClick={() => setEnableChair(!enableChair)}
-          className={`w-9 h-5 rounded-full transition-colors relative ${
-            enableChair ? "bg-felt-light" : "bg-border"
-          }`}
         >
-          <div
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-              enableChair ? "left-[18px]" : "left-0.5"
-            }`}
-          />
-        </button>
+          <div className="toggle-thumb" />
+        </div>
         <div>
-          <span className="label-mono block">Moderator (Chair)</span>
-          <span className="label-mono-sm">AI chair introduces topic, ensures everyone speaks, and provides a wrap-up summary</span>
+          <span className="text-[13px] font-medium text-text-primary block" style={{ fontFamily: "var(--font-ui)" }}>
+            Moderator
+          </span>
+          <span className="text-[11px] text-text-muted" style={{ fontFamily: "var(--font-ui)" }}>
+            AI chair introduces, mediates, and summarizes
+          </span>
         </div>
       </div>
 
       {/* Quick presets */}
       <div>
-        <label className="label-mono block mb-2">Quick Presets</label>
+        <label className="text-[11px] font-medium text-text-muted block mb-2" style={{ fontFamily: "var(--font-ui)" }}>Quick Presets</label>
         <div className="flex gap-2 flex-wrap">
           {QUICK_PRESETS.map((preset) => (
             <button
               key={preset.label}
               type="button"
               onClick={() => applyPreset(preset.ids)}
-              className="btn btn-ghost text-[9px] py-1.5 px-3"
+              className="btn btn-ghost text-[12px] py-2 px-4"
             >
-              {preset.label}
+              {preset.emoji} {preset.label}
             </button>
           ))}
         </div>
@@ -254,16 +255,16 @@ export function CreateSessionForm() {
       {/* Participants */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <label className="label-mono">
-            Panel · {participants.length}/8
+          <label className="text-[12px] font-medium text-text-secondary" style={{ fontFamily: "var(--font-ui)" }}>
+            Panel ({participants.length}/8)
           </label>
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             {!participants.some((p) => p.isHuman) && (
-              <button type="button" onClick={addHuman} disabled={participants.length >= 8} className="btn btn-ghost text-[9px] py-1 px-2 disabled:opacity-30">
+              <button type="button" onClick={addHuman} disabled={participants.length >= 8} className="btn btn-ghost text-[11px] py-1.5 px-3 disabled:opacity-30">
                 + You
               </button>
             )}
-            <button type="button" onClick={() => setShowCustomAdd(!showCustomAdd)} disabled={participants.length >= 8} className="btn btn-ghost text-[9px] py-1 px-2 disabled:opacity-30">
+            <button type="button" onClick={() => setShowCustomAdd(!showCustomAdd)} disabled={participants.length >= 8} className="btn btn-ghost text-[11px] py-1.5 px-3 disabled:opacity-30">
               + Persona
             </button>
           </div>
@@ -271,87 +272,84 @@ export function CreateSessionForm() {
 
         {/* Persona picker */}
         {showCustomAdd && availablePersonas.length > 0 && (
-          <div className="mb-3 border border-border bg-[#0d0d0d] max-h-48 overflow-y-auto custom-scrollbar">
-            {availablePersonas.map((persona) => (
-              <button
-                key={persona.id}
-                type="button"
-                onClick={() => { addPersona(persona); setShowCustomAdd(false); }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-raised transition-colors text-left border-b border-border/50 last:border-0"
-              >
-                <img
-                  src={`https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(persona.avatarSeed)}&backgroundColor=transparent&size=24`}
-                  alt={persona.name}
-                  className="w-6 h-6 border border-border"
-                  style={{ backgroundColor: persona.color + "11" }}
-                />
-                <span className="text-[13px] font-[family-name:var(--font-serif)] text-white">{persona.name}</span>
-                <span className="label-mono-sm" style={{ color: persona.color }}>{persona.role}</span>
-              </button>
-            ))}
+          <div className="mb-3 rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] max-h-48 overflow-y-auto custom-scrollbar">
+            {availablePersonas.map((persona) => {
+              const seed = encodeURIComponent(persona.avatarSeed);
+              return (
+                <button
+                  key={persona.id}
+                  type="button"
+                  onClick={() => { addPersona(persona); setShowCustomAdd(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors text-left border-b border-white/[0.04] last:border-0"
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                    style={{ background: `${persona.color}15`, border: `1px solid ${persona.color}33` }}
+                  >
+                    <img src={`https://api.dicebear.com/9.x/notionists-neutral/svg?seed=${seed}&backgroundColor=transparent`} alt="" className="w-5 h-5" />
+                  </div>
+                  <span className="text-[14px] text-white" style={{ fontFamily: "var(--font-serif)" }}>{persona.name}</span>
+                  <span className="text-[10px] font-medium" style={{ fontFamily: "var(--font-ui)", color: persona.color }}>{persona.role}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
         {/* Participant list */}
-        <div className="space-y-1">
-          {participants.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 bg-[#0d0d0d] border border-border/50 group">
-              <img
-                src={`https://api.dicebear.com/9.x/${p.isHuman ? "adventurer" : "bottts"}/svg?seed=${encodeURIComponent(p.name)}&backgroundColor=transparent&size=24`}
-                alt={p.name}
-                className="w-6 h-6 border border-border"
-                style={{ backgroundColor: p.color + "11" }}
-              />
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                <span className="text-[13px] font-[family-name:var(--font-serif)] text-white">{p.name}</span>
-                {p.isHuman ? (
-                  <span className="label-mono-sm text-blue-400">Human</span>
-                ) : (
-                  <span className="label-mono-sm">{p.provider} · {p.model.split("-").slice(-1)[0]}</span>
-                )}
-                {p.personality && (
-                  <span className="label-mono-sm truncate hidden sm:inline">{p.personality}</span>
-                )}
-              </div>
-
-              {/* Voice select */}
-              {!p.isHuman && voices.length > 0 && (
-                <select
-                  value={p.voiceId || ""}
-                  onChange={(e) => updateParticipant(p.id, { voiceId: e.target.value || undefined })}
-                  className="w-28 px-1.5 py-1 bg-[#0a0a0a] border border-border text-[9px] font-[family-name:var(--font-mono)] uppercase text-text-secondary focus:outline-none"
+        <div className="space-y-1.5">
+          {participants.map((p) => {
+            const seed = encodeURIComponent(p.name);
+            const avatarStyle = p.isHuman ? "adventurer" : "notionists-neutral";
+            return (
+              <motion.div
+                key={p.id}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.04] group"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                  style={{ background: `${p.color}15`, border: `1px solid ${p.color}33` }}
                 >
-                  <option value="">Default</option>
-                  {voices.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
-              )}
+                  <img src={`https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${seed}&backgroundColor=transparent`} alt="" className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <span className="text-[13px] font-medium text-white" style={{ fontFamily: "var(--font-ui)" }}>{p.name}</span>
+                  {p.isHuman ? (
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">YOU</span>
+                  ) : (
+                    <span className="text-[10px] text-text-muted" style={{ fontFamily: "var(--font-mono)" }}>{p.provider}</span>
+                  )}
+                </div>
 
-              {participants.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => removeParticipant(p.id)}
-                  className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 transition-all"
-                >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M2 2l8 8M10 2l-8 8" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+                {participants.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeParticipant(p.id)}
+                    className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-full hover:bg-accent-red/20 text-text-muted hover:text-accent-red transition-all"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M1 1l8 8M9 1l-8 8" />
+                    </svg>
+                  </button>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
       {/* Submit */}
-      <button
+      <motion.button
         type="submit"
         disabled={!topic.trim() || submitting || participants.length < 2}
-        className="btn btn-primary w-full py-3 disabled:opacity-30"
+        className="btn btn-primary w-full py-3.5 text-[14px] disabled:opacity-30"
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
       >
         {submitting ? "Creating..." : "Start Roundtable"}
-      </button>
+      </motion.button>
     </form>
   );
 }

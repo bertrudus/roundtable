@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Cormorant_Garamond, IBM_Plex_Mono } from "next/font/google";
+import { Inter, Bebas_Neue, Cormorant_Garamond, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-ui",
+});
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -33,9 +38,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${bebasNeue.variable} ${cormorant.variable} ${ibmPlexMono.variable}`}
+      className={`dark ${inter.variable} ${bebasNeue.variable} ${cormorant.variable} ${ibmPlexMono.variable}`}
     >
-      <body className="min-h-screen bg-[#0a0a0a] antialiased">
+      <body className="min-h-screen bg-black antialiased">
+        <div className="ambient-bg" />
         {children}
       </body>
     </html>

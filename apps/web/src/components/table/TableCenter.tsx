@@ -1,6 +1,7 @@
 "use client";
 
 import { useDiscussion } from "@/hooks/useDiscussion";
+import { motion } from "framer-motion";
 
 export function TableCenter() {
   const {
@@ -18,28 +19,44 @@ export function TableCenter() {
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-      <div className="pointer-events-auto text-center max-w-[180px]">
-        <h2 className="font-[family-name:var(--font-serif)] text-gold text-[14px] font-semibold mb-1 line-clamp-2 leading-snug">
+      <div className="pointer-events-auto text-center max-w-[200px]">
+        <h2
+          className="text-[15px] font-semibold mb-1 line-clamp-2 leading-snug"
+          style={{
+            fontFamily: "var(--font-serif)",
+            color: "rgba(255,255,255,0.8)",
+          }}
+        >
           {session.config.topic}
         </h2>
-        <p className="label-mono-sm mb-3">
+        <p className="label-mono-sm mb-4">
           Turn {turnCount}{session.config.maxTurns ? ` / ${session.config.maxTurns}` : ""}
         </p>
 
         {!isActive && session.status !== "completed" && (
-          <button onClick={startDiscussion} className="btn btn-primary text-[10px] px-5 py-2">
+          <motion.button
+            onClick={startDiscussion}
+            className="btn btn-primary text-[12px] px-6 py-2.5"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             Start
-          </button>
+          </motion.button>
         )}
 
         {isActive && !waitingForHuman && (
-          <button onClick={stopDiscussion} className="btn btn-danger text-[10px] px-5 py-2">
+          <motion.button
+            onClick={stopDiscussion}
+            className="btn btn-danger text-[12px] px-6 py-2.5"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             Stop
-          </button>
+          </motion.button>
         )}
 
         {session.status === "completed" && (
-          <span className="label-mono-sm">Complete</span>
+          <span className="label-mono text-accent-green">Complete</span>
         )}
       </div>
     </div>

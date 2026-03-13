@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useDiscussion } from "@/hooks/useDiscussion";
 
 export function TranscriptPanel() {
@@ -20,133 +21,166 @@ export function TranscriptPanel() {
   const getParticipant = (id: string) =>
     session.config.participants.find((p) => p.id === id);
 
-  // Group messages by round for visual clarity
-  const roundSize = session.config.participants.filter((p) => !p.isChair).length;
-
   return (
     <div className="flex flex-col h-full">
       {/* Summary accordion */}
       {summary && (
-        <div className="border-b border-border">
+        <div className="mx-3 mb-2">
           <button
             onClick={() => setSummaryOpen(!summaryOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-raised transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#FFD60A]/[0.06] hover:bg-[#FFD60A]/[0.1] transition-colors"
           >
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-gold" />
-              <span className="label-mono text-gold">Chair Summary</span>
+              <div className="w-2 h-2 rounded-full bg-gold" />
+              <span className="text-[12px] font-semibold text-gold" style={{ fontFamily: "var(--font-ui)" }}>
+                Chair Summary
+              </span>
             </div>
             <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className={`text-text-muted transition-transform ${summaryOpen ? "rotate-180" : ""}`}
+              width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#FFD60A" strokeWidth="1.5"
+              className={`transition-transform ${summaryOpen ? "rotate-180" : ""}`}
             >
               <path d="M2 4l4 4 4-4" />
             </svg>
           </button>
-          {summaryOpen && (
-            <div className="px-4 pb-4">
-              <p className="text-[13px] font-[family-name:var(--font-serif)] text-text-primary leading-relaxed pl-4 border-l-2 border-gold/40">
-                {summary}
-              </p>
-            </div>
-          )}
+          <AnimatePresence>
+            {summaryOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <p
+                  className="text-[13px] leading-relaxed px-4 py-3 text-text-secondary"
+                  style={{ fontFamily: "var(--font-serif)" }}
+                >
+                  {summary}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-3"
+        className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4 space-y-1"
       >
         {messages.length === 0 && !currentSpeakerId && (
-          <p className="label-mono text-center mt-8">
-            Waiting for discussion to start
+          <p className="text-center mt-12 text-text-muted text-[13px]" style={{ fontFamily: "var(--font-ui)" }}>
+            Waiting for discussion to start...
           </p>
         )}
 
-        {messages.map((msg, idx) => {
+        {messages.map((msg) => {
           const participant = getParticipant(msg.participantId);
           const isChair = participant?.isChair;
-
-          // Show round divider before first non-chair message of each round
-          const showRoundDivider =
-            !isChair &&
-            roundSize > 0 &&
-            idx > 0 &&
-            (() => {
-              // Count non-chair messages before this one
-              const nonChairBefore = messages
-                .slice(0, idx)
-                .filter((m) => !getParticipant(m.participantId)?.isChair).length;
-              return nonChairBefore > 0 && nonChairBefore % roundSize === 0;
-            })();
+          const seed = encodeURIComponent(msg.participantName);
+          const avatarStyle = participant?.isHuman ? "adventurer" : isChair ? "identicon" : "notionists-neutral";
+          const avatarUrl = `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${seed}&backgroundColor=transparent`;
 
           return (
-            <div key={msg.id}>
-              {showRoundDivider && (
-                <div className="flex items-center gap-3 py-2">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="label-mono-sm">Round {Math.floor(messages.slice(0, idx).filter((m) => !getParticipant(m.participantId)?.isChair).length / roundSize) + 1}</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-              )}
-              <div className={`space-y-1 ${isChair ? "bg-gold/5 -mx-2 px-2 py-2 border-l-2 border-gold/30" : ""}`}>
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-1.5 h-1.5 shrink-0 ${isChair ? "bg-gold" : ""}`}
-                    style={{ backgroundColor: isChair ? undefined : participant?.color ?? "#888" }}
-                  />
+            <motion.div
+              key={msg.id}
+              className={`flex gap-3 p-3 rounded-xl transition-colors ${
+                isChair ? "bg-[#FFD60A]/[0.04]" : "hover:bg-white/[0.02]"
+              }`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Mini avatar */}
+              <div
+                className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center overflow-hidden"
+                style={{
+                  background: `${participant?.color ?? "#888"}15`,
+                  border: `1px solid ${participant?.color ?? "#888"}33`,
+                }}
+              >
+                <img src={avatarUrl} alt="" className="w-5 h-5 object-contain" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
                   <span
-                    className="label-mono shrink-0"
-                    style={{ color: participant?.color ?? "#888" }}
+                    className="text-[12px] font-semibold"
+                    style={{ fontFamily: "var(--font-ui)", color: participant?.color ?? "#888" }}
                   >
                     {msg.participantName}
-                    {isChair && <span className="text-gold/60 ml-1">(chair)</span>}
                   </span>
-                  <span className="label-mono-sm shrink-0">
-                    T{msg.turnNumber}
+                  {isChair && (
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-gold/10 text-gold">
+                      CHAIR
+                    </span>
+                  )}
+                  <span className="text-[10px] text-text-muted" style={{ fontFamily: "var(--font-mono)" }}>
+                    #{msg.turnNumber}
                   </span>
                 </div>
-                <p className="text-[13px] font-[family-name:var(--font-serif)] text-text-primary leading-relaxed pl-3.5 border-l border-border">
+                <p
+                  className="text-[13px] leading-relaxed text-text-secondary"
+                  style={{ fontFamily: "var(--font-serif)" }}
+                >
                   {msg.content}
                 </p>
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
         {/* Streaming message */}
-        {currentSpeakerId && streamingContent[currentSpeakerId] && (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
+        {currentSpeakerId && streamingContent[currentSpeakerId] && (() => {
+          const participant = getParticipant(currentSpeakerId);
+          const seed = encodeURIComponent(participant?.name ?? "");
+          const avatarStyle = participant?.isHuman ? "adventurer" : participant?.isChair ? "identicon" : "notionists-neutral";
+          const avatarUrl = `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${seed}&backgroundColor=transparent`;
+
+          return (
+            <div className="flex gap-3 p-3 rounded-xl bg-white/[0.02]">
               <div
-                className="w-1.5 h-1.5 animate-pulse shrink-0"
+                className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center overflow-hidden animate-pulse"
                 style={{
-                  backgroundColor:
-                    getParticipant(currentSpeakerId)?.color ?? "#888",
-                }}
-              />
-              <span
-                className="label-mono shrink-0"
-                style={{
-                  color: getParticipant(currentSpeakerId)?.color ?? "#888",
+                  background: `${participant?.color ?? "#888"}15`,
+                  border: `1px solid ${participant?.color ?? "#888"}55`,
                 }}
               >
-                {getParticipant(currentSpeakerId)?.name ?? "Unknown"}
-              </span>
-              <span className="label-mono-sm animate-pulse shrink-0">Speaking</span>
+                <img src={avatarUrl} alt="" className="w-5 h-5 object-contain" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span
+                    className="text-[12px] font-semibold"
+                    style={{ fontFamily: "var(--font-ui)", color: participant?.color ?? "#888" }}
+                  >
+                    {participant?.name ?? "Unknown"}
+                  </span>
+                  <motion.span
+                    className="text-[9px] font-medium px-1.5 py-0.5 rounded"
+                    style={{ fontFamily: "var(--font-mono)", background: `${participant?.color ?? "#888"}15`, color: participant?.color ?? "#888" }}
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                  >
+                    SPEAKING
+                  </motion.span>
+                </div>
+                <p
+                  className="text-[13px] leading-relaxed text-text-secondary"
+                  style={{ fontFamily: "var(--font-serif)" }}
+                >
+                  {streamingContent[currentSpeakerId]}
+                  <motion.span
+                    className="inline-block w-[2px] h-3.5 ml-1 rounded-full"
+                    style={{ backgroundColor: participant?.color ?? "#888" }}
+                    animate={{ opacity: [1, 0.2, 1] }}
+                    transition={{ duration: 0.8, repeat: Infinity }}
+                  />
+                </p>
+              </div>
             </div>
-            <p className="text-[13px] font-[family-name:var(--font-serif)] text-text-primary leading-relaxed pl-3.5 border-l border-felt-light/50">
-              {streamingContent[currentSpeakerId]}
-              <span className="inline-block w-[2px] h-3.5 bg-felt-light ml-0.5 animate-pulse" />
-            </p>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

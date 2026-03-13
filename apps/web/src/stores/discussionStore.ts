@@ -147,8 +147,8 @@ export const useDiscussionStore = create<DiscussionState>((set, get) => ({
                 // Server is waiting — TTS handler will call signalReady()
                 // If TTS is disabled, signal immediately
                 if (!get().ttsEnabled) {
-                  // Small pause even without TTS so it doesn't blast
-                  setTimeout(() => get().signalReady(), 1500);
+                  // Brief reading pause then advance
+                  setTimeout(() => get().signalReady(), 400);
                 }
                 break;
 

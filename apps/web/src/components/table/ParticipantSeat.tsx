@@ -22,10 +22,11 @@ export function ParticipantSeat({
   const mouthOpen = useDiscussionStore((s) => s.mouthOpen[participant.id] ?? false);
   const speakingTTS = useDiscussionStore((s) => s.speakingTTS);
   const isTTSSpeaking = speakingTTS === participant.id;
+  const speaking = isSpeaking || isTTSSpeaking;
 
   return (
     <motion.div
-      className="absolute flex flex-col items-center gap-0.5"
+      className="absolute flex flex-col items-center"
       style={{
         left: x,
         top: y,
@@ -33,23 +34,38 @@ export function ParticipantSeat({
       }}
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
-      transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+      transition={{ delay: 0.1, type: "spring", stiffness: 260, damping: 20 }}
     >
       <div className="relative">
         <ParticipantAvatar
           name={participant.name}
           color={participant.color}
-          isSpeaking={isSpeaking || isTTSSpeaking}
+          size={participant.isChair ? 56 : 64}
+          isSpeaking={speaking}
           mouthOpen={mouthOpen}
           isHuman={participant.isHuman}
+          isChair={participant.isChair}
         />
-        {(isSpeaking || isTTSSpeaking) && <SpeakingIndicator color={participant.color} />}
+        {speaking && <SpeakingIndicator color={participant.color} />}
       </div>
-      <span className="font-[family-name:var(--font-serif)] text-[12px] text-white/80 whitespace-nowrap mt-1">
+
+      <span
+        className="mt-2 text-[13px] font-semibold whitespace-nowrap"
+        style={{
+          fontFamily: "var(--font-ui)",
+          color: speaking ? "#fff" : "rgba(255,255,255,0.7)",
+        }}
+      >
         {participant.name}
       </span>
-      <span className="label-mono-sm" style={{ color: participant.color + "aa" }}>
-        {participant.isChair ? "chair" : participant.isHuman ? "you" : participant.provider}
+      <span
+        className="text-[9px] font-medium uppercase tracking-wider"
+        style={{
+          fontFamily: "var(--font-mono)",
+          color: participant.color + (speaking ? "cc" : "66"),
+        }}
+      >
+        {participant.isChair ? "moderator" : participant.isHuman ? "you" : participant.provider}
       </span>
     </motion.div>
   );

@@ -19,52 +19,47 @@ export function MessageBubble({
   tableSize,
   isStreaming,
 }: MessageBubbleProps) {
-  const displayText = content.length > 120 ? "..." + content.slice(-120) : content;
+  const displayText = content.length > 140 ? "..." + content.slice(-140) : content;
 
-  // Determine if the bubble is on the left or right half of the table
+  // Position bubble to the side of the participant
   const center = tableSize / 2;
-  const isLeft = x < center - 30;
-  const isRight = x > center + 30;
+  const isLeft = x < center - 40;
+  const isRight = x > center + 40;
 
-  // Position bubble to the side of the participant, not below
   let bubbleStyle: React.CSSProperties;
   if (isLeft) {
-    bubbleStyle = {
-      left: x + 40,
-      top: y - 20,
-    };
+    bubbleStyle = { left: x + 44, top: y - 16 };
   } else if (isRight) {
-    bubbleStyle = {
-      right: tableSize - x + 40,
-      top: y - 20,
-    };
+    bubbleStyle = { right: tableSize - x + 44, top: y - 16 };
   } else {
-    // Top or bottom — position below
-    bubbleStyle = {
-      left: x,
-      top: y + 50,
-      transform: "translateX(-50%)",
-    };
+    bubbleStyle = { left: x, top: y + 50, transform: "translateX(-50%)" };
   }
 
   return (
     <motion.div
-      className="absolute z-20 w-[260px] pointer-events-none"
+      className="absolute z-20 w-[280px] pointer-events-none"
       style={bubbleStyle}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
+      initial={{ opacity: 0, scale: 0.95, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
     >
       <div
-        className="px-3 py-2 text-[11px] font-[family-name:var(--font-serif)] text-text-primary leading-relaxed backdrop-blur-sm border-l-2 break-words"
+        className="glass rounded-xl px-4 py-3 text-[12px] leading-relaxed break-words"
         style={{
-          backgroundColor: "#0a0a0acc",
-          borderLeftColor: color,
+          fontFamily: "var(--font-serif)",
+          color: "rgba(255,255,255,0.9)",
+          borderLeft: `3px solid ${color}`,
         }}
       >
         {displayText}
         {isStreaming && (
-          <span className="inline-block w-[2px] h-3 bg-felt-light ml-0.5 animate-pulse" />
+          <motion.span
+            className="inline-block w-[2px] h-3.5 ml-1 rounded-full"
+            style={{ backgroundColor: color }}
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
+          />
         )}
       </div>
     </motion.div>

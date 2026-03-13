@@ -76,7 +76,9 @@ export class GeminiAdapter implements AIProviderAdapter {
         : undefined,
       generationConfig: {
         temperature: options?.temperature ?? 0.8,
-        maxOutputTokens: options?.maxTokens ?? 1024,
+        // Gemini 2.5 uses thinking tokens that eat into the budget,
+        // so we need a much higher ceiling than OpenAI/Anthropic
+        maxOutputTokens: Math.max((options?.maxTokens ?? 1024) * 4, 2048),
       },
     });
 
@@ -130,7 +132,7 @@ export class GeminiAdapter implements AIProviderAdapter {
         : undefined,
       generationConfig: {
         temperature: options?.temperature ?? 0.8,
-        maxOutputTokens: options?.maxTokens ?? 1024,
+        maxOutputTokens: Math.max((options?.maxTokens ?? 1024) * 4, 2048),
       },
     });
 

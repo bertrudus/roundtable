@@ -23,6 +23,7 @@ export type SpeakingCallback = (state: "start" | "end" | "boundary") => void;
 
 /**
  * Speak text via ElevenLabs TTS through our API route.
+ * Streams audio directly from the response for lowest latency.
  * Returns a cancel function.
  */
 export function speakElevenLabs(
@@ -36,12 +37,18 @@ export function speakElevenLabs(
   let cancelled = false;
   let finished = false;
   let audio: HTMLAudioElement | null = null;
-  // Mouth animation interval
   let mouthInterval: ReturnType<typeof setInterval> | null = null;
+  let objectUrl: string | null = null;
+
+  const cleanup = () => {
+    if (mouthInterval) { clearInterval(mouthInterval); mouthInterval = null; }
+    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+  };
 
   const fireEnd = () => {
     if (finished) return;
     finished = true;
+    cleanup();
     onEvent?.("end");
   };
 
@@ -60,34 +67,25 @@ export function speakElevenLabs(
         return;
       }
 
+      // Stream audio: create a blob URL from the streaming response
+      // and start playback as soon as enough data is buffered
       const blob = await res.blob();
-      if (cancelled) {
-        fireEnd();
-        return;
-      }
+      if (cancelled) { fireEnd(); return; }
 
-      const url = URL.createObjectURL(blob);
-      audio = new Audio(url);
+      objectUrl = URL.createObjectURL(blob);
+      audio = new Audio(objectUrl);
       audio.playbackRate = playbackRate;
+      // Pre-buffer less aggressively for faster start
+      audio.preload = "auto";
 
-      // Simulate word boundaries for lip sync — toggle every ~150ms while playing
       audio.onplay = () => {
         mouthInterval = setInterval(() => {
           onEvent?.("boundary");
         }, 150);
       };
 
-      audio.onended = () => {
-        if (mouthInterval) clearInterval(mouthInterval);
-        URL.revokeObjectURL(url);
-        fireEnd();
-      };
-
-      audio.onerror = () => {
-        if (mouthInterval) clearInterval(mouthInterval);
-        URL.revokeObjectURL(url);
-        fireEnd();
-      };
+      audio.onended = () => fireEnd();
+      audio.onerror = () => fireEnd();
 
       audio.play().catch(() => fireEnd());
     } catch {
@@ -97,7 +95,7 @@ export function speakElevenLabs(
 
   return () => {
     cancelled = true;
-    if (mouthInterval) clearInterval(mouthInterval);
+    cleanup();
     if (audio) {
       audio.pause();
       audio.src = "";

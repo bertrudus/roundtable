@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useDiscussionStore } from "@/stores/discussionStore";
 
 interface HumanInputProps {
@@ -25,15 +26,14 @@ export function HumanInput({ participantName, color }: HumanInputProps) {
   };
 
   return (
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 w-80">
-      <div
-        className="rounded-xl p-3 backdrop-blur-md border"
-        style={{
-          backgroundColor: "rgba(0,0,0,0.85)",
-          borderColor: color + "66",
-        }}
-      >
-        <p className="text-xs mb-2" style={{ color }}>
+    <motion.div
+      className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 w-80"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+    >
+      <div className="glass rounded-2xl p-4">
+        <p className="text-[12px] font-medium mb-2" style={{ fontFamily: "var(--font-ui)", color }}>
           Your turn, {participantName}
         </p>
         <textarea
@@ -48,18 +48,19 @@ export function HumanInput({ participantName, color }: HumanInputProps) {
           }}
           placeholder="Type your response..."
           rows={3}
-          className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white placeholder:text-zinc-500 focus:outline-none resize-none"
-          style={{ borderColor: color + "44" }}
+          className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[14px] text-white placeholder:text-text-muted focus:outline-none focus:border-accent/50 resize-none"
+          style={{ fontFamily: "var(--font-serif)" }}
         />
-        <button
+        <motion.button
           onClick={handleSubmit}
           disabled={!text.trim()}
-          className="mt-2 w-full py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-30 transition-colors"
-          style={{ backgroundColor: color + "cc" }}
+          className="mt-2 w-full py-2.5 rounded-xl text-[13px] font-semibold text-white disabled:opacity-30 transition-colors"
+          style={{ fontFamily: "var(--font-ui)", backgroundColor: color }}
+          whileTap={{ scale: 0.98 }}
         >
           Send
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }

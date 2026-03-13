@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { CreateSessionForm } from "@/components/session/CreateSessionForm";
 import { RoundTable } from "@/components/table/RoundTable";
 import { PanelSelector } from "@/components/panels/PanelSelector";
@@ -11,13 +10,13 @@ export default function Home() {
 
   if (!session) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center p-8">
-        <div className="text-center mb-10">
-          <h1 className="heading-display text-5xl tracking-wider mb-2">
+      <main className="min-h-screen flex flex-col items-center justify-center p-8 relative">
+        <div className="text-center mb-12">
+          <h1 className="heading-display text-6xl tracking-wider mb-3">
             <span className="text-white">ROUND</span>
-            <span className="text-felt-light">TABLE</span>
+            <span className="text-accent">TABLE</span>
           </h1>
-          <p className="font-[family-name:var(--font-serif)] text-text-secondary text-lg max-w-md mx-auto">
+          <p className="font-[family-name:var(--font-serif)] text-text-secondary text-lg max-w-md mx-auto leading-relaxed">
             AI agents debate topics around a virtual roundtable.
             Pick your panel, set the topic, and watch the discussion unfold.
           </p>
@@ -28,32 +27,33 @@ export default function Home() {
   }
 
   return (
-    <main className="h-screen flex overflow-hidden bg-[#0a0a0a]">
-      {/* Left sidebar — branding + session info */}
-      <div className="w-14 bg-surface border-r border-border flex flex-col items-center py-4 gap-6">
-        <div className="heading-display text-lg text-felt-light tracking-wider leading-none">
-          <span className="block text-center">R</span>
-          <span className="block text-center text-[10px] text-text-muted">T</span>
-        </div>
-        <div className="flex-1" />
-        <button
-          onClick={reset}
-          className="w-8 h-8 flex items-center justify-center text-text-muted hover:text-white hover:bg-surface-raised transition-colors"
-          title="New session"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M8 1v14M1 8h14" />
-          </svg>
-        </button>
-      </div>
-
+    <main className="h-screen flex overflow-hidden relative">
       {/* Center — the roundtable */}
       <div className="flex-1 relative flex items-center justify-center">
         <RoundTable />
       </div>
 
-      {/* Right panel — tabbed */}
-      <div className="w-[380px] border-l border-border flex flex-col bg-surface">
+      {/* Right panel — glass sidebar */}
+      <div className="w-[400px] flex flex-col glass border-l-0 m-2 ml-0 rounded-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4">
+          <div>
+            <span className="heading-display text-lg tracking-wider">
+              <span className="text-white">ROUND</span>
+              <span className="text-accent">TABLE</span>
+            </span>
+          </div>
+          <button
+            onClick={reset}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-text-secondary hover:text-white"
+            title="New session"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M8 1v14M1 8h14" />
+            </svg>
+          </button>
+        </div>
+
         <PanelSelector />
       </div>
     </main>

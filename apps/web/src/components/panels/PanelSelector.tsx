@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { TranscriptPanel } from "../transcript/TranscriptPanel";
 import { ParticipantsPanel } from "./ParticipantsPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -8,9 +9,9 @@ import { SettingsPanel } from "./SettingsPanel";
 type PanelTab = "transcript" | "participants" | "settings";
 
 const TABS: { id: PanelTab; label: string }[] = [
-  { id: "transcript", label: "TRANSCRIPT" },
-  { id: "participants", label: "PANEL" },
-  { id: "settings", label: "SETTINGS" },
+  { id: "transcript", label: "Transcript" },
+  { id: "participants", label: "Panel" },
+  { id: "settings", label: "Settings" },
 ];
 
 export function PanelSelector() {
@@ -18,24 +19,30 @@ export function PanelSelector() {
 
   return (
     <>
-      {/* Tab bar */}
-      <div className="flex border-b border-border">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 label-mono text-center transition-colors relative ${
-              activeTab === tab.id
-                ? "text-white"
-                : "text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            {tab.label}
-            {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-felt-light" />
-            )}
-          </button>
-        ))}
+      {/* Segmented control */}
+      <div className="mx-4 mb-3">
+        <div className="flex p-1 rounded-xl bg-white/[0.04]">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex-1 relative py-2 text-[12px] font-medium transition-colors rounded-lg"
+              style={{
+                fontFamily: "var(--font-ui)",
+                color: activeTab === tab.id ? "#fff" : "rgba(235,235,245,0.4)",
+              }}
+            >
+              {activeTab === tab.id && (
+                <motion.div
+                  className="absolute inset-0 rounded-lg bg-white/[0.08]"
+                  layoutId="activeTab"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10">{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Panel content */}

@@ -8,19 +8,23 @@ interface SpeakingIndicatorProps {
 
 export function SpeakingIndicator({ color }: SpeakingIndicatorProps) {
   return (
-    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-      {[0, 1, 2].map((i) => (
+    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-[3px] items-end">
+      {[0, 1, 2, 3, 4].map((i) => (
         <motion.div
           key={i}
-          className="w-1 rounded-full"
-          style={{ backgroundColor: color }}
+          className="rounded-full"
+          style={{
+            backgroundColor: color,
+            width: 3,
+          }}
           animate={{
-            height: [4, 12, 4],
+            height: [3, 10 + Math.random() * 4, 3],
+            opacity: [0.5, 1, 0.5],
           }}
           transition={{
-            duration: 0.6,
+            duration: 0.5 + Math.random() * 0.3,
             repeat: Infinity,
-            delay: i * 0.15,
+            delay: i * 0.08,
             ease: "easeInOut",
           }}
         />

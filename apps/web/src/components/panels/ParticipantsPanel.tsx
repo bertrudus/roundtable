@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useDiscussionStore } from "@/stores/discussionStore";
 import { PERSONAS, type Persona } from "@/lib/personas";
-import { DEFAULT_VOICE_IDS } from "@/lib/tts/speech";
 import { PARTICIPANT_COLORS } from "@roundtable/shared";
 import { nanoid } from "nanoid";
 import type { ParticipantConfig } from "@roundtable/shared";
@@ -14,12 +14,11 @@ export function ParticipantsPanel() {
   const [showPersonas, setShowPersonas] = useState(false);
 
   if (!session) return null;
-
   const { participants } = session.config;
 
   const addFromPersona = (persona: Persona) => {
     if (participants.length >= 8) return;
-    const config: ParticipantConfig = {
+    addParticipantLive({
       id: nanoid(),
       name: persona.name,
       provider: persona.provider,
@@ -28,22 +27,19 @@ export function ParticipantsPanel() {
       personality: persona.personality,
       voiceId: persona.voiceId,
       color: persona.color,
-    };
-    addParticipantLive(config);
+    });
     setShowPersonas(false);
   };
 
   const addHuman = () => {
-    if (participants.length >= 8) return;
-    if (participants.some((p) => p.isHuman)) return;
-    const idx = participants.length;
+    if (participants.length >= 8 || participants.some((p) => p.isHuman)) return;
     addParticipantLive({
       id: nanoid(),
       name: "You",
       provider: "openai",
       model: "gpt-5.4",
       systemPrompt: "Human participant",
-      color: PARTICIPANT_COLORS[idx] ?? "#888",
+      color: PARTICIPANT_COLORS[participants.length] ?? "#888",
       isHuman: true,
     });
   };
@@ -54,25 +50,17 @@ export function ParticipantsPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <span className="label-mono">
+      <div className="px-4 py-3 flex items-center justify-between">
+        <span className="text-[13px] font-medium text-text-secondary" style={{ fontFamily: "var(--font-ui)" }}>
           {participants.length} participant{participants.length !== 1 ? "s" : ""}
         </span>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           {!participants.some((p) => p.isHuman) && (
-            <button
-              onClick={addHuman}
-              disabled={participants.length >= 8}
-              className="btn btn-ghost text-[9px] py-1 px-2 disabled:opacity-30"
-            >
+            <button onClick={addHuman} disabled={participants.length >= 8} className="btn btn-ghost text-[11px] py-1.5 px-3 disabled:opacity-30">
               + You
             </button>
           )}
-          <button
-            onClick={() => setShowPersonas(!showPersonas)}
-            disabled={participants.length >= 8}
-            className="btn btn-primary text-[9px] py-1 px-2 disabled:opacity-30"
-          >
+          <button onClick={() => setShowPersonas(!showPersonas)} disabled={participants.length >= 8} className="btn btn-primary text-[11px] py-1.5 px-3 disabled:opacity-30">
             + Add
           </button>
         </div>
@@ -80,85 +68,92 @@ export function ParticipantsPanel() {
 
       {/* Persona picker */}
       {showPersonas && (
-        <div className="border-b border-border bg-[#0d0d0d] max-h-64 overflow-y-auto custom-scrollbar">
+        <div className="mx-3 mb-2 rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] max-h-64 overflow-y-auto custom-scrollbar">
           {availablePersonas.length === 0 ? (
-            <p className="p-4 label-mono-sm text-center">All personas in use</p>
+            <p className="p-4 text-center text-[12px] text-text-muted" style={{ fontFamily: "var(--font-ui)" }}>All personas in use</p>
           ) : (
-            availablePersonas.map((persona) => (
-              <button
-                key={persona.id}
-                onClick={() => addFromPersona(persona)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-raised transition-colors text-left border-b border-border/50 last:border-0"
-              >
-                <img
-                  src={`https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(persona.avatarSeed)}&backgroundColor=transparent&size=28`}
-                  alt={persona.name}
-                  className="w-7 h-7 rounded-none border border-border"
-                  style={{ backgroundColor: persona.color + "11" }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-[family-name:var(--font-serif)] text-white">
-                      {persona.name}
-                    </span>
-                    <span className="label-mono-sm" style={{ color: persona.color }}>
-                      {persona.role}
-                    </span>
+            availablePersonas.map((persona) => {
+              const seed = encodeURIComponent(persona.avatarSeed);
+              return (
+                <button
+                  key={persona.id}
+                  onClick={() => addFromPersona(persona)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors text-left border-b border-white/[0.04] last:border-0"
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                    style={{ background: `${persona.color}15`, border: `1px solid ${persona.color}33` }}
+                  >
+                    <img src={`https://api.dicebear.com/9.x/notionists-neutral/svg?seed=${seed}&backgroundColor=transparent`} alt="" className="w-6 h-6" />
                   </div>
-                  <p className="text-[11px] text-text-muted truncate font-[family-name:var(--font-serif)]">
-                    {persona.personality}
-                  </p>
-                </div>
-              </button>
-            ))
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] font-medium text-white" style={{ fontFamily: "var(--font-ui)" }}>
+                        {persona.name}
+                      </span>
+                      <span className="text-[10px] font-medium" style={{ color: persona.color }}>{persona.role}</span>
+                    </div>
+                    <p className="text-[11px] text-text-muted truncate" style={{ fontFamily: "var(--font-ui)" }}>
+                      {persona.personality}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       )}
 
       {/* Participant list */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {participants.map((p) => (
-          <div
-            key={p.id}
-            className={`flex items-center gap-3 px-4 py-3 border-b border-border/50 group ${
-              p.isChair ? "bg-gold/5 border-l-2 border-l-gold/30" : ""
-            }`}
-          >
-            <img
-              src={`https://api.dicebear.com/9.x/${p.isHuman ? "adventurer" : "bottts"}/svg?seed=${encodeURIComponent(p.name)}&backgroundColor=transparent&size=28`}
-              alt={p.name}
-              className="w-7 h-7 rounded-none border border-border"
-              style={{ backgroundColor: p.color + "11" }}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-[family-name:var(--font-serif)] text-white">
-                  {p.name}
-                </span>
-                {p.isChair && (
-                  <span className="label-mono-sm text-gold">CHAIR</span>
-                )}
-                {p.isHuman && (
-                  <span className="label-mono-sm text-blue-400">YOU</span>
-                )}
-              </div>
-              <span className="label-mono-sm">
-                {p.isChair ? "moderator" : p.isHuman ? "human" : `${p.provider} · ${p.model}`}
-              </span>
-            </div>
-            {!p.isChair && participants.filter((pp) => !pp.isChair).length > 2 && (
-              <button
-                onClick={() => removeParticipantLive(p.id)}
-                className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-500 transition-all text-xs"
-                title="Remove"
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-3 space-y-1">
+        {participants.map((p) => {
+          const seed = encodeURIComponent(p.name);
+          const avatarStyle = p.isHuman ? "adventurer" : p.isChair ? "identicon" : "notionists-neutral";
+
+          return (
+            <motion.div
+              key={p.id}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl group transition-colors ${
+                p.isChair ? "bg-gold/[0.05]" : "hover:bg-white/[0.02]"
+              }`}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0"
+                style={{ background: `${p.color}15`, border: `1.5px solid ${p.color}44` }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M3 3l8 8M11 3l-8 8" />
-                </svg>
-              </button>
-            )}
-          </div>
-        ))}
+                <img src={`https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${seed}&backgroundColor=transparent`} alt="" className="w-7 h-7" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] font-medium text-white" style={{ fontFamily: "var(--font-ui)" }}>
+                    {p.name}
+                  </span>
+                  {p.isChair && (
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-gold/10 text-gold">CHAIR</span>
+                  )}
+                  {p.isHuman && (
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">YOU</span>
+                  )}
+                </div>
+                <span className="text-[11px] text-text-muted" style={{ fontFamily: "var(--font-mono)" }}>
+                  {p.isChair ? "moderator" : p.isHuman ? "human" : `${p.provider} · ${p.model}`}
+                </span>
+              </div>
+              {!p.isChair && participants.filter((pp) => !pp.isChair).length > 2 && (
+                <button
+                  onClick={() => removeParticipantLive(p.id)}
+                  className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-full hover:bg-accent-red/20 text-text-muted hover:text-accent-red transition-all"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M1 1l8 8M9 1l-8 8" />
+                  </svg>
+                </button>
+              )}
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

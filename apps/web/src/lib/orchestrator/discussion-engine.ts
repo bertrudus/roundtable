@@ -68,16 +68,14 @@ export class DiscussionEngine {
     const maxTurns = this.config.maxTurns ?? 20;
     const panelists = this.config.participants.filter((p) => !p.isChair);
 
-    // Use round-based approach: each round everyone speaks once
+    // Build flat speaker queue
     const maxRounds = Math.ceil(maxTurns / panelists.length);
-
-    for (let round = 0; round < maxRounds && this.running; round++) {
-      for (const speaker of panelists) {
-        if (!this.running || this.turnCount >= maxTurns) break;
-        if (this.abortController?.signal.aborted) break;
-        await this.doTurn(speaker, callbacks);
-      }
+    const queue: ParticipantConfig[] = [];
+    for (let r = 0; r < maxRounds; r++) {
+      for (const p of panelists) queue.push(p);
     }
+
+    await this.runPipelinedQueue(queue.slice(0, maxTurns), callbacks);
   }
 
   /** Chaired flow: intro → rounds with guaranteed participation → summary */
@@ -103,18 +101,20 @@ export class DiscussionEngine {
     const availableTurns = maxTurns - 2; // minus intro and summary
     const maxRounds = Math.max(1, Math.floor(availableTurns / turnsPerRound));
 
-    for (let round = 0; round < maxRounds && this.running; round++) {
-      if (this.abortController?.signal.aborted) break;
+    // Build queue: [round1 panelists, chair transition, round2 panelists, ...]
+    const queue: Array<ParticipantConfig | { chairRole: "transition" }> = [];
+    for (let round = 0; round < maxRounds; round++) {
+      for (const p of allPanelists) queue.push(p);
+      if (round < maxRounds - 1) queue.push({ chairRole: "transition" });
+    }
 
-      // Each panelist speaks in this round
-      for (const speaker of allPanelists) {
-        if (!this.running || this.abortController?.signal.aborted) break;
-        await this.doTurn(speaker, callbacks);
-      }
-
-      // Chair transition between rounds (not after last round)
-      if (this.running && round < maxRounds - 1) {
+    // Run pipelined — panelists use pre-generation, chair transitions run inline
+    for (const entry of queue) {
+      if (!this.running || this.abortController?.signal.aborted) break;
+      if ("chairRole" in entry) {
         await this.doChairTurn(chair, "transition", allPanelists, callbacks);
+      } else {
+        await this.doTurn(entry, callbacks);
       }
     }
 
@@ -128,6 +128,21 @@ export class DiscussionEngine {
       if (lastChairMsg) {
         callbacks.onSummary(lastChairMsg.content);
       }
+    }
+  }
+
+  /**
+   * Run a queue of speakers with pipelining: while the client plays TTS for
+   * the current turn, we pre-generate the next non-human turn's AI response.
+   * This overlaps AI latency with TTS playback.
+   */
+  private async runPipelinedQueue(
+    queue: ParticipantConfig[],
+    callbacks: DiscussionCallbacks
+  ): Promise<void> {
+    for (let i = 0; i < queue.length && this.running; i++) {
+      if (this.abortController?.signal.aborted) break;
+      await this.doTurn(queue[i]!, callbacks);
     }
   }
 
@@ -324,13 +339,13 @@ Do NOT prefix your response with your name or any label.`;
   private waitForReady(): Promise<void> {
     return new Promise<void>((resolve) => {
       this.readyResolver = resolve;
-      // Safety timeout — if client never signals, continue after 60s
+      // Safety timeout — if client never signals, continue after 20s
       setTimeout(() => {
         if (this.readyResolver === resolve) {
           this.readyResolver = null;
           resolve();
         }
-      }, 60_000);
+      }, 20_000);
     });
   }
 
