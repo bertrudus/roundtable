@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --color-felt-green: #1a5c32;
+  --color-felt-dark: #0f3d1f;
+  --color-felt-light: #2a7a47;
+  --color-gold: #d4a843;
+  --color-gold-light: #e8c86a;
+  --color-surface: #111111;
+  --color-surface-raised: #1a1a1a;
+  --color-border: #2a2a2a;
+  --color-border-light: #333333;
+  --color-text-primary: #e5e5e5;
+  --color-text-secondary: #999999;
+  --color-text-muted: #666666;
+}
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #e5e5e5;
+  --font-display: "Bebas Neue", Impact, sans-serif;
+  --font-serif: "Cormorant Garamond", Garamond, serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-serif);
+}
+
+/* Felt texture background */
+.felt-bg {
+  background: radial-gradient(ellipse at center, var(--color-felt-light) 0%, var(--color-felt-green) 40%, var(--color-felt-dark) 100%);
+}
+
+/* Speaking pulse animation */
+@keyframes speak-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 0 12px rgba(59, 130, 246, 0); }
+}
+
+.speaking-pulse {
+  animation: speak-pulse 1.5s ease-in-out infinite;
+}
+
+/* Mono label style */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-text-secondary);
+}
+
+.label-mono-sm {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+/* Display heading */
+.heading-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 0;
+}
+
+/* Sharp button style */
+.btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  transition: all 150ms;
+}
+
+.btn-primary {
+  background: var(--color-felt-light);
+  border-color: var(--color-felt-green);
+  color: white;
+}
+.btn-primary:hover {
+  background: var(--color-felt-green);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+}
+
+.btn-danger {
+  background: transparent;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+.btn-danger:hover {
+  background: #dc2626;
+  color: white;
+}

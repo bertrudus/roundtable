@@ -1,0 +1,14 @@
+{
+  "name": "roundtable",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @roundtable/web dev",
+    "build": "pnpm --filter @roundtable/web build",
+    "lint": "pnpm --filter @roundtable/web lint",
+    "db:generate": "pnpm --filter @roundtable/web db:generate",
+    "db:push": "pnpm --filter @roundtable/web db:push"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
