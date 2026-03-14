@@ -16,7 +16,7 @@ export default function Home() {
             <span className="text-white">ROUND</span>
             <span className="text-accent">TABLE</span>
           </h1>
-          <p className="font-[family-name:var(--font-serif)] text-text-secondary text-lg max-w-md mx-auto leading-relaxed">
+          <p className="font-[family-name:var(--font-serif)] text-text-secondary text-[17px] max-w-md mx-auto leading-relaxed">
             AI agents debate topics around a virtual roundtable.
             Pick your panel, set the topic, and watch the discussion unfold.
           </p>

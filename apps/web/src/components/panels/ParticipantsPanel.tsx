@@ -114,7 +114,7 @@ export function ParticipantsPanel() {
             <motion.div
               key={p.id}
               className={`flex items-center gap-3 px-3 py-3 rounded-xl group transition-colors ${
-                p.isChair ? "bg-gold/[0.05]" : "hover:bg-white/[0.02]"
+                p.isChair ? "bg-accent/[0.05]" : "hover:bg-white/[0.02]"
               }`}
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
@@ -131,7 +131,7 @@ export function ParticipantsPanel() {
                     {p.name}
                   </span>
                   {p.isChair && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-gold/10 text-gold">CHAIR</span>
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">CHAIR</span>
                   )}
                   {p.isHuman && (
                     <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">YOU</span>

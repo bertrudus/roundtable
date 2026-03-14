@@ -28,16 +28,16 @@ export function TranscriptPanel() {
         <div className="mx-3 mb-2">
           <button
             onClick={() => setSummaryOpen(!summaryOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#FFD60A]/[0.06] hover:bg-[#FFD60A]/[0.1] transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-accent/[0.08] hover:bg-accent/[0.12] transition-colors"
           >
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-gold" />
-              <span className="text-[12px] font-semibold text-gold" style={{ fontFamily: "var(--font-ui)" }}>
+              <div className="w-2 h-2 rounded-full bg-accent" />
+              <span className="text-[12px] font-semibold text-accent" style={{ fontFamily: "var(--font-ui)" }}>
                 Chair Summary
               </span>
             </div>
             <svg
-              width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#FFD60A" strokeWidth="1.5"
+              width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#0A84FF" strokeWidth="1.5"
               className={`transition-transform ${summaryOpen ? "rotate-180" : ""}`}
             >
               <path d="M2 4l4 4 4-4" />
@@ -85,7 +85,7 @@ export function TranscriptPanel() {
             <motion.div
               key={msg.id}
               className={`flex gap-3 p-3 rounded-xl transition-colors ${
-                isChair ? "bg-[#FFD60A]/[0.04]" : "hover:bg-white/[0.02]"
+                isChair ? "bg-accent/[0.04]" : "hover:bg-white/[0.02]"
               }`}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ export function TranscriptPanel() {
                     {msg.participantName}
                   </span>
                   {isChair && (
-                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-gold/10 text-gold">
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent">
                       CHAIR
                     </span>
                   )}

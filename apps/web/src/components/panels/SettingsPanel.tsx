@@ -3,8 +3,10 @@
 import { useDiscussionStore } from "@/stores/discussionStore";
 
 export function SettingsPanel() {
-  const { session, ttsEnabled, setTTSEnabled, speechRate, setSpeechRate, isActive, stopDiscussion, startDiscussion } =
-    useDiscussionStore();
+  const {
+    session, ttsEnabled, setTTSEnabled, speechRate, setSpeechRate,
+    isActive, stopDiscussion, startDiscussion, isPaused, setPaused,
+  } = useDiscussionStore();
 
   if (!session) return null;
   const { config } = session;
@@ -35,6 +37,24 @@ export function SettingsPanel() {
 
       {/* Controls */}
       <div className="space-y-1">
+        {/* Pause toggle */}
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <span className="text-[14px] text-text-primary block" style={{ fontFamily: "var(--font-ui)" }}>Pause Between Turns</span>
+            <span className="text-[11px] text-text-muted" style={{ fontFamily: "var(--font-ui)" }}>
+              Manually continue after each turn
+            </span>
+          </div>
+          <div
+            className={`toggle-track ${isPaused ? "active" : ""}`}
+            onClick={() => setPaused(!isPaused)}
+          >
+            <div className="toggle-thumb" />
+          </div>
+        </div>
+
+        <div className="h-px bg-white/[0.04]" />
+
         {/* Voice toggle */}
         <div className="flex items-center justify-between py-3">
           <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Voice Output</span>
@@ -90,14 +110,14 @@ export function SettingsPanel() {
           </div>
           <div className="flex items-center justify-between py-3">
             <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Moderator</span>
-            <span className={`text-[13px] ${config.enableChair ? "text-accent-green" : "text-text-muted"}`} style={{ fontFamily: "var(--font-ui)" }}>
+            <span className={`text-[13px] ${config.enableChair ? "text-accent" : "text-text-muted"}`} style={{ fontFamily: "var(--font-ui)" }}>
               {config.enableChair ? "Enabled" : "Disabled"}
             </span>
           </div>
           <div className="flex items-center justify-between py-3">
             <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Status</span>
             <span className={`text-[13px] font-medium ${
-              session.status === "active" ? "text-accent-green" : session.status === "completed" ? "text-text-muted" : "text-accent-orange"
+              session.status === "active" ? "text-accent" : session.status === "completed" ? "text-text-muted" : "text-accent"
             }`} style={{ fontFamily: "var(--font-ui)" }}>
               {session.status === "active" ? "Live" : session.status === "completed" ? "Complete" : "Ready"}
             </span>

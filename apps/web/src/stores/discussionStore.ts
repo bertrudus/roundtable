@@ -14,6 +14,8 @@ interface DiscussionState {
   speakingTTS: string | null;
   mouthOpen: Record<string, boolean>;
   summary: string | null;
+  isPaused: boolean;
+  awaitingContinue: boolean;
 
   // Actions
   createSession: (config: SessionConfig) => Promise<void>;
@@ -21,6 +23,7 @@ interface DiscussionState {
   stopDiscussion: () => void;
   submitHumanMessage: (content: string) => void;
   signalReady: () => void;
+  continueDiscussion: () => void;
   addParticipantLive: (config: ParticipantConfig) => void;
   removeParticipantLive: (id: string) => void;
   addMessage: (message: Message) => void;
@@ -34,6 +37,7 @@ interface DiscussionState {
   setSpeechRate: (rate: number) => void;
   setSpeakingTTS: (participantId: string | null) => void;
   setMouthOpen: (participantId: string, open: boolean) => void;
+  setPaused: (paused: boolean) => void;
   reset: () => void;
 }
 
@@ -50,6 +54,8 @@ export const useDiscussionStore = create<DiscussionState>((set, get) => ({
   speakingTTS: null,
   mouthOpen: {},
   summary: null,
+  isPaused: false,
+  awaitingContinue: false,
 
   createSession: async (config: SessionConfig) => {
     try {
@@ -145,8 +151,10 @@ export const useDiscussionStore = create<DiscussionState>((set, get) => ({
 
               case "await:ready":
                 // Server is waiting — TTS handler will call signalReady()
-                // If TTS is disabled, signal immediately
-                if (!get().ttsEnabled) {
+                // If paused, show continue button instead of auto-advancing
+                if (get().isPaused) {
+                  set({ awaitingContinue: true });
+                } else if (!get().ttsEnabled) {
                   // Brief reading pause then advance
                   setTimeout(() => get().signalReady(), 400);
                 }
@@ -215,9 +223,28 @@ export const useDiscussionStore = create<DiscussionState>((set, get) => ({
   },
 
   signalReady: () => {
+    const { session, isPaused } = get();
+    if (!session) return;
+
+    // If paused, don't auto-signal — wait for user to click Continue
+    if (isPaused) {
+      set({ awaitingContinue: true });
+      return;
+    }
+
+    set({ awaitingContinue: false });
+    fetch("/api/ai/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: session.id, action: "ready" }),
+    });
+  },
+
+  continueDiscussion: () => {
     const { session } = get();
     if (!session) return;
 
+    set({ awaitingContinue: false });
     fetch("/api/ai/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -322,6 +349,14 @@ export const useDiscussionStore = create<DiscussionState>((set, get) => ({
       mouthOpen: { ...state.mouthOpen, [participantId]: open },
     })),
 
+  setPaused: (paused) => {
+    set({ isPaused: paused });
+    // If unpausing and awaiting continue, auto-continue
+    if (!paused && get().awaitingContinue) {
+      get().continueDiscussion();
+    }
+  },
+
   reset: () => {
     set({
       session: null,
@@ -334,6 +369,8 @@ export const useDiscussionStore = create<DiscussionState>((set, get) => ({
       speakingTTS: null,
       mouthOpen: {},
       summary: null,
+      isPaused: false,
+      awaitingContinue: false,
     });
   },
 }));

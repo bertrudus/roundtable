@@ -21,6 +21,27 @@ export const DEFAULT_VOICE_IDS = [
 
 export type SpeakingCallback = (state: "start" | "end" | "boundary") => void;
 
+/** Warm up audio context on user gesture to avoid autoplay blocking */
+let audioContextWarmedUp = false;
+export function warmUpAudio() {
+  if (audioContextWarmedUp || typeof window === "undefined") return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    audioContextWarmedUp = true;
+    // Also play a silent audio element to unlock HTMLAudioElement
+    const silentAudio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
+    silentAudio.volume = 0;
+    silentAudio.play().catch(() => {});
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Speak text via ElevenLabs TTS through our API route.
  * Streams audio directly from the response for lowest latency.
@@ -62,20 +83,26 @@ export function speakElevenLabs(
         body: JSON.stringify({ text, voiceId }),
       });
 
-      if (cancelled || !res.ok) {
+      if (cancelled) { fireEnd(); return; }
+
+      if (!res.ok) {
+        console.warn("[TTS] API returned", res.status);
         fireEnd();
         return;
       }
 
-      // Stream audio: create a blob URL from the streaming response
-      // and start playback as soon as enough data is buffered
       const blob = await res.blob();
       if (cancelled) { fireEnd(); return; }
+
+      if (blob.size === 0) {
+        console.warn("[TTS] Empty audio blob");
+        fireEnd();
+        return;
+      }
 
       objectUrl = URL.createObjectURL(blob);
       audio = new Audio(objectUrl);
       audio.playbackRate = playbackRate;
-      // Pre-buffer less aggressively for faster start
       audio.preload = "auto";
 
       audio.onplay = () => {
@@ -85,10 +112,14 @@ export function speakElevenLabs(
       };
 
       audio.onended = () => fireEnd();
-      audio.onerror = () => fireEnd();
+      audio.onerror = (e) => {
+        console.warn("[TTS] Audio playback error:", e);
+        fireEnd();
+      };
 
-      audio.play().catch(() => fireEnd());
-    } catch {
+      await audio.play();
+    } catch (e) {
+      console.warn("[TTS] Error:", e);
       fireEnd();
     }
   })();

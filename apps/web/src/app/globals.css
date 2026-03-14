@@ -12,14 +12,8 @@
   --color-text-secondary: rgba(235, 235, 245, 0.6);
   --color-text-muted: rgba(235, 235, 245, 0.3);
   --color-accent: #0A84FF;
-  --color-accent-green: #30D158;
-  --color-accent-orange: #FF9F0A;
+  --color-accent-light: #3a9fff;
   --color-accent-red: #FF453A;
-  --color-gold: #FFD60A;
-  --color-felt-green: #1a5c32;
-  --color-felt-dark: #0f3d1f;
-  --color-felt-light: #2a7a47;
-  --color-gold-light: #e8c86a;
 }
 
 :root {
@@ -38,9 +32,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Felt texture background */
-.felt-bg {
-  background: radial-gradient(ellipse at center, #1a3a28 0%, #0d2618 50%, #071510 100%);
+/* Dark table background */
+.table-bg {
+  background: radial-gradient(ellipse at center, rgba(10,15,20,0.95) 0%, rgba(5,8,12,0.98) 60%, rgba(2,4,8,1) 100%);
 }
 
 /* Glass card */
@@ -176,7 +170,7 @@ body {
   position: relative;
 }
 .toggle-track.active {
-  background: var(--color-accent-green);
+  background: var(--color-accent);
 }
 .toggle-thumb {
   position: absolute;
@@ -217,6 +211,15 @@ input[type="range"]::-webkit-slider-thumb {
   position: fixed;
   inset: 0;
   background: radial-gradient(ellipse at 30% 20%, rgba(10, 132, 255, 0.06) 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 80%, rgba(48, 209, 88, 0.04) 0%, transparent 50%);
+              radial-gradient(ellipse at 70% 80%, rgba(10, 132, 255, 0.03) 0%, transparent 50%);
   pointer-events: none;
+}
+
+/* Paused indicator pulse */
+@keyframes pause-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.pause-pulse {
+  animation: pause-pulse 2s ease-in-out infinite;
 }

@@ -18,6 +18,7 @@ export function RoundTable() {
     waitingForHuman,
     ttsEnabled,
     speechRate,
+    isPaused,
     setSpeakingTTS,
     setMouthOpen,
     signalReady,
@@ -87,7 +88,7 @@ export function RoundTable() {
 
   return (
     <div className="relative" style={{ width: tableSize + 120, height: totalHeight + 60 }}>
-      {/* Chair — centered above table */}
+      {/* Chair -- centered above table */}
       {chairParticipant && (() => {
         const isSpeaking = currentSpeakerId === chairParticipant.id && isActive && !waitingForHuman;
         const streamText = streamingContent[chairParticipant.id];
@@ -123,8 +124,8 @@ export function RoundTable() {
           left: 60,
           width: tableSize,
           height: tableSize,
-          background: "radial-gradient(ellipse at center, rgba(20,35,25,0.9) 0%, rgba(10,18,14,0.95) 60%, rgba(5,10,8,1) 100%)",
-          boxShadow: "inset 0 0 80px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.4), 0 0 120px rgba(10,132,255,0.03)",
+          background: "radial-gradient(ellipse at center, rgba(10,15,20,0.95) 0%, rgba(5,8,12,0.98) 60%, rgba(2,4,8,1) 100%)",
+          boxShadow: "inset 0 0 80px rgba(0,0,0,0.6), 0 0 60px rgba(0,0,0,0.4), 0 0 120px rgba(10,132,255,0.04)",
           border: "1px solid rgba(255,255,255,0.06)",
         }}
       />
@@ -137,7 +138,7 @@ export function RoundTable() {
           left: 68,
           width: tableSize - 16,
           height: tableSize - 16,
-          border: "1px solid rgba(255,214,10,0.12)",
+          border: "1px solid rgba(10,132,255,0.15)",
         }}
       />
 
