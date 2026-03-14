@@ -4,7 +4,9 @@ import type {
   ProviderMessage,
   Message,
   ResponseLength,
+  DiscussionQuality,
 } from "@roundtable/shared";
+import { MODEL_TIERS } from "@roundtable/shared";
 import { getProviderAdapter } from "../ai/provider-factory";
 import { TurnManager } from "./turn-manager";
 import { nanoid } from "nanoid";
@@ -232,6 +234,7 @@ export class DiscussionEngine {
     callbacks: DiscussionCallbacks
   ): Promise<Message> {
     const adapter = getProviderAdapter(chair.provider);
+    const model = this.resolveModel(chair);
     const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "medium"];
 
     const panelistNames = panelists.map((p) => p.name).join(", ");
@@ -291,7 +294,7 @@ Do NOT prefix your response with your name or any label.`;
 
     let fullContent = "";
     const maxTokens = role === "summary" ? 512 : lengthConfig.maxTokens;
-    const stream = await adapter.generateStream(chair.model, messages, {
+    const stream = await adapter.generateStream(model, messages, {
       maxTokens,
     });
     const reader = stream.getReader();
@@ -359,11 +362,12 @@ Do NOT prefix your response with your name or any label.`;
     callbacks: DiscussionCallbacks
   ): Promise<Message> {
     const adapter = getProviderAdapter(speaker.provider);
+    const model = this.resolveModel(speaker);
     const messages = this.buildContext(speaker);
     const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "medium"];
 
     let fullContent = "";
-    const stream = await adapter.generateStream(speaker.model, messages, {
+    const stream = await adapter.generateStream(model, messages, {
       maxTokens: lengthConfig.maxTokens,
     });
     const reader = stream.getReader();
@@ -440,6 +444,15 @@ Guidelines:
 - Be engaging and conversational, not lecture-like
 - NEVER prefix your response with your name, brackets, or any label like "[Name]:" — just speak naturally
 ${speaker.personality ? `\nPersonality: ${speaker.personality}` : ""}`;
+  }
+
+  /** Resolve the model to use for a participant based on quality mode */
+  private resolveModel(participant: ParticipantConfig): string {
+    const quality = this.config.discussionQuality ?? "balanced";
+    if (quality === "balanced") return participant.model; // use persona default
+    const tier = MODEL_TIERS[participant.provider];
+    if (!tier) return participant.model;
+    return tier[quality] ?? participant.model;
   }
 
   stop(): void {

@@ -6,6 +6,8 @@ export type TurnMode = "round-robin" | "open-floor" | "directed";
 
 export type ResponseLength = "brief" | "short" | "medium" | "long";
 
+export type DiscussionQuality = "fast" | "balanced" | "quality";
+
 export interface ParticipantConfig {
   id: string;
   name: string;
@@ -27,6 +29,7 @@ export interface SessionConfig {
   maxTurns?: number;
   turnTimeLimit?: number; // seconds
   responseLength?: ResponseLength;
+  discussionQuality?: DiscussionQuality;
   enableChair?: boolean;
   participants: ParticipantConfig[];
 }

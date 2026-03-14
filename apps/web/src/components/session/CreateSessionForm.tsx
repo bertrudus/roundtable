@@ -14,6 +14,7 @@ import type {
   AIProvider,
   TurnMode,
   ResponseLength,
+  DiscussionQuality,
 } from "@roundtable/shared";
 
 const QUICK_PRESETS = [
@@ -35,6 +36,7 @@ export function CreateSessionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [showCustomAdd, setShowCustomAdd] = useState(false);
   const [enableChair, setEnableChair] = useState(true);
+  const [discussionQuality, setDiscussionQuality] = useState<DiscussionQuality>("balanced");
 
   useEffect(() => {
     fetchVoices().then(setVoices);
@@ -124,6 +126,7 @@ export function CreateSessionForm() {
       turnMode,
       maxTurns,
       responseLength,
+      discussionQuality,
       enableChair,
       participants: finalParticipants,
     });
@@ -214,6 +217,38 @@ export function CreateSessionForm() {
             className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[13px] focus:outline-none tabular-nums"
             style={{ fontFamily: "var(--font-mono)" }}
           />
+        </div>
+      </div>
+
+      {/* Quality mode */}
+      <div>
+        <label className="text-[12px] font-medium text-text-secondary block mb-2" style={{ fontFamily: "var(--font-ui)" }}>
+          Discussion Quality
+        </label>
+        <div className="flex p-1 rounded-xl bg-white/[0.04]">
+          {([
+            { id: "fast" as const, label: "Fast", desc: "Low-latency, ~10x cheaper" },
+            { id: "balanced" as const, label: "Balanced", desc: "Default models" },
+            { id: "quality" as const, label: "Quality", desc: "Premium, deeper thinking" },
+          ]).map((tier) => (
+            <button
+              key={tier.id}
+              type="button"
+              onClick={() => setDiscussionQuality(tier.id)}
+              className={`flex-1 py-2.5 px-2 rounded-lg text-center transition-all ${
+                discussionQuality === tier.id
+                  ? "bg-accent/20 text-white"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              <span className="text-[12px] font-semibold block" style={{ fontFamily: "var(--font-ui)" }}>
+                {tier.label}
+              </span>
+              <span className="text-[9px] block mt-0.5" style={{ fontFamily: "var(--font-ui)" }}>
+                {tier.desc}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 

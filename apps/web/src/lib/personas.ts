@@ -131,7 +131,7 @@ export const CHAIR_PERSONA: Persona = {
     "You are a professional roundtable moderator. You introduce topics clearly, ensure balanced participation, ask follow-up questions, highlight key tensions and agreements, and keep the conversation productive. You are neutral but insightful.",
   personality: "Authoritative, fair, concise. Keeps things moving.",
   voiceId: "ErXwobaYiN019PkySvjV", // Antoni
-  color: "#d4a843", // gold
+  color: "#0A84FF", // accent blue
   avatarSeed: "Chair",
 };
 

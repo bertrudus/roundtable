@@ -48,6 +48,18 @@ export const PROVIDERS: Record<AIProvider, ProviderInfo> = {
   },
 };
 
+/**
+ * Model tiers by quality mode.
+ * "fast"    — optimised for low-latency voice / real-time (~10× cheaper)
+ * "balanced" — mid-tier: good quality, reasonable speed
+ * "quality" — premium models for deep, thoughtful discussion
+ */
+export const MODEL_TIERS: Record<string, { fast: string; balanced: string; quality: string }> = {
+  openai:    { fast: "gpt-4.1-mini",              balanced: "gpt-4o",             quality: "gpt-5.4" },
+  anthropic: { fast: "claude-haiku-4-5-20251001", balanced: "claude-sonnet-4-6",  quality: "claude-sonnet-4-6" },
+  gemini:    { fast: "gemini-2.0-flash-lite",     balanced: "gemini-2.5-flash",   quality: "gemini-2.5-pro" },
+};
+
 export const CONTEXT_COMPACTION_THRESHOLD = 0.7; // 70% of context window
 export const DEFAULT_TURN_MODE = "round-robin" as const;
 export const MAX_PARTICIPANTS = 8;

@@ -109,6 +109,10 @@ export function SettingsPanel() {
             <span className="text-[13px] text-text-secondary" style={{ fontFamily: "var(--font-mono)" }}>{config.maxTurns ?? 20}</span>
           </div>
           <div className="flex items-center justify-between py-3">
+            <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Quality</span>
+            <span className="text-[13px] text-text-secondary capitalize" style={{ fontFamily: "var(--font-ui)" }}>{config.discussionQuality ?? "balanced"}</span>
+          </div>
+          <div className="flex items-center justify-between py-3">
             <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Moderator</span>
             <span className={`text-[13px] ${config.enableChair ? "text-accent" : "text-text-muted"}`} style={{ fontFamily: "var(--font-ui)" }}>
               {config.enableChair ? "Enabled" : "Disabled"}
