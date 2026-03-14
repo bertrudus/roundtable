@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
-import { sessions, participants } from "@/lib/db/schema";
+import { sessions, participants, briefings } from "@/lib/db/schema";
 import { createSessionSchema } from "@roundtable/shared";
 import { eq } from "drizzle-orm";
 
@@ -46,6 +46,18 @@ export async function POST(request: Request) {
         color: p.color,
         seatIndex: i,
       });
+    }
+
+    // Store documents as briefings
+    if (config.documents && config.documents.length > 0) {
+      for (const doc of config.documents) {
+        await db.insert(briefings).values({
+          id: nanoid(),
+          sessionId,
+          filename: doc.name,
+          content: doc.content,
+        });
+      }
     }
 
     return NextResponse.json({ id: sessionId, config, status: "configuring" });

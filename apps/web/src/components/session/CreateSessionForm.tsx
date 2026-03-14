@@ -37,10 +37,53 @@ export function CreateSessionForm() {
   const [enableChair, setEnableChair] = useState(true);
   const [discussionQuality, setDiscussionQuality] = useState<DiscussionQuality>("balanced");
   const [discussionMode, setDiscussionMode] = useState<DiscussionMode>("debate");
+  const [documents, setDocuments] = useState<{ name: string; content: string }[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
 
   useEffect(() => {
     fetchVoices().then(setVoices);
   }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    setUploadingDoc(true);
+
+    for (const file of Array.from(files)) {
+      try {
+        let content = "";
+        if (file.type === "application/pdf") {
+          // For PDFs, read as text (basic extraction)
+          // Most modern PDFs will need server-side extraction, but try client-side first
+          content = await file.text();
+          // Strip binary noise — keep only printable chars
+          content = content.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s{3,}/g, " ").trim();
+          if (content.length < 50) {
+            content = `[PDF: ${file.name} — content could not be extracted client-side. Please paste the text manually.]`;
+          }
+        } else {
+          content = await file.text();
+        }
+
+        // Truncate very long documents to avoid context overflow
+        const maxChars = 15000;
+        if (content.length > maxChars) {
+          content = content.slice(0, maxChars) + `\n\n[... truncated at ${maxChars} characters]`;
+        }
+
+        setDocuments((prev) => [...prev, { name: file.name, content }]);
+      } catch {
+        console.warn(`Failed to read file: ${file.name}`);
+      }
+    }
+
+    setUploadingDoc(false);
+    e.target.value = "";
+  };
+
+  const removeDocument = (index: number) => {
+    setDocuments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const togglePersona = (persona: Persona) => {
     const existing = participants.find((p) => p.name === persona.name);
@@ -127,6 +170,7 @@ export function CreateSessionForm() {
       discussionQuality,
       discussionMode,
       enableChair,
+      documents: documents.length > 0 ? documents : undefined,
       participants: finalParticipants,
     });
     setSubmitting(false);
@@ -303,6 +347,61 @@ export function CreateSessionForm() {
           className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-[14px] placeholder:text-text-muted focus:outline-none focus:border-accent/50 transition-all resize-none"
           style={{ fontFamily: "var(--font-serif)" }}
         />
+      </div>
+
+      {/* Document Upload */}
+      <div>
+        <label className="text-[12px] font-medium text-text-secondary block mb-2" style={{ fontFamily: "var(--font-ui)" }}>
+          Documents <span className="text-text-muted">(optional)</span>
+        </label>
+
+        {documents.length > 0 && (
+          <div className="space-y-1.5 mb-2">
+            {documents.map((doc, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-accent shrink-0">
+                  <path d="M8 1H3.5A1.5 1.5 0 002 2.5v9A1.5 1.5 0 003.5 13h7a1.5 1.5 0 001.5-1.5V5L8 1z" />
+                  <path d="M8 1v4h4" />
+                </svg>
+                <span className="text-[12px] text-white flex-1 truncate" style={{ fontFamily: "var(--font-ui)" }}>
+                  {doc.name}
+                </span>
+                <span className="text-[10px] text-text-muted shrink-0" style={{ fontFamily: "var(--font-mono)" }}>
+                  {(doc.content.length / 1000).toFixed(1)}k
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeDocument(i)}
+                  className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-accent-red/20 text-text-muted hover:text-accent-red transition-all shrink-0"
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M1 1l6 6M7 1l-6 6" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <label className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/[0.03] border border-dashed border-white/[0.1] hover:border-accent/30 hover:bg-white/[0.05] transition-all cursor-pointer">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-text-muted">
+            <path d="M8 3v10M3 8h10" />
+          </svg>
+          <span className="text-[12px] text-text-muted" style={{ fontFamily: "var(--font-ui)" }}>
+            {uploadingDoc ? "Reading..." : "Add .txt, .md, .csv, or .pdf"}
+          </span>
+          <input
+            type="file"
+            multiple
+            accept=".txt,.md,.csv,.pdf,.json,.html,.xml"
+            onChange={handleFileUpload}
+            className="hidden"
+            disabled={uploadingDoc}
+          />
+        </label>
       </div>
 
       {/* Discussion Mode */}

@@ -292,16 +292,20 @@ export class DiscussionEngine {
       .map((p) => `${p.name} (${p.personality || "participant"})`)
       .join(", ");
 
+    const docsContext = this.config.documents && this.config.documents.length > 0
+      ? `\n\nReference documents provided:\n${this.config.documents.map((d) => `- ${d.name}`).join("\n")}`
+      : "";
+
     let directive: string;
     if (role === "introduce") {
       directive = `${chair.systemPrompt}
 
-Topic: "${this.config.topic}"${this.config.description ? `\nContext: ${this.config.description}` : ""}
+Topic: "${this.config.topic}"${this.config.description ? `\nContext: ${this.config.description}` : ""}${docsContext}
 Mode: ${modeLabel}
 
 Panelists: ${panelistDetails}
 
-Introduce the topic engagingly and briefly welcome the panel. Set the stage for a productive ${mode} session. Keep it to ${lengthConfig.words}.
+Introduce the topic engagingly and briefly welcome the panel.${this.config.documents?.length ? " Reference documents have been shared with the panel." : ""} Set the stage for a productive ${mode} session. Keep it to ${lengthConfig.words}.
 Do NOT prefix your response with your name or any label.`;
     } else if (role === "transition") {
       directive = `${chair.systemPrompt}
@@ -462,14 +466,19 @@ Do NOT prefix your response with your name or any label.`;
     }
 
     if (this.transcript.length === 0) {
-      messages.push({
-        role: "user",
-        content: `The discussion topic is: "${this.config.topic}"${
-          this.config.description
-            ? `\n\nAdditional context: ${this.config.description}`
-            : ""
-        }\n\nPlease share your opening thoughts.`,
-      });
+      let opening = `The discussion topic is: "${this.config.topic}"`;
+      if (this.config.description) {
+        opening += `\n\nAdditional context: ${this.config.description}`;
+      }
+      if (this.config.documents && this.config.documents.length > 0) {
+        opening += "\n\n--- REFERENCE DOCUMENTS ---";
+        for (const doc of this.config.documents) {
+          opening += `\n\n[${doc.name}]:\n${doc.content}`;
+        }
+        opening += "\n\n--- END DOCUMENTS ---";
+      }
+      opening += "\n\nPlease share your opening thoughts.";
+      messages.push({ role: "user", content: opening });
     }
 
     return messages;

@@ -34,6 +34,7 @@ export interface SessionConfig {
   discussionQuality?: DiscussionQuality;
   discussionMode?: DiscussionMode;
   enableChair?: boolean;
+  documents?: { name: string; content: string }[];
   participants: ParticipantConfig[];
 }
 

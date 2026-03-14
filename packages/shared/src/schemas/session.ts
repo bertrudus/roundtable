@@ -24,6 +24,10 @@ export const sessionConfigSchema = z.object({
   discussionQuality: z.enum(["fast", "balanced", "quality"]).optional(),
   discussionMode: z.enum(["debate", "review", "critic"]).optional(),
   enableChair: z.boolean().optional(),
+  documents: z.array(z.object({
+    name: z.string(),
+    content: z.string(),
+  })).optional(),
   participants: z
     .array(participantConfigSchema)
     .min(2, "At least 2 participants required")
