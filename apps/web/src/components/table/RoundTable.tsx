@@ -6,7 +6,8 @@ import { ParticipantSeat } from "./ParticipantSeat";
 import { TableCenter } from "./TableCenter";
 import { MessageBubble } from "./MessageBubble";
 import { HumanInput } from "./HumanInput";
-import { speakElevenLabs, DEFAULT_VOICE_IDS } from "@/lib/tts/speech";
+import { DEFAULT_VOICE_IDS } from "@/lib/tts/speech";
+import { StreamingTTS } from "@/lib/tts/streaming-tts";
 
 export function RoundTable() {
   const {
@@ -18,57 +19,91 @@ export function RoundTable() {
     waitingForHuman,
     ttsEnabled,
     speechRate,
-    isPaused,
     setSpeakingTTS,
     setMouthOpen,
     signalReady,
   } = useDiscussion();
 
   const lastSpokenRef = useRef<string | null>(null);
-  const cancelTTSRef = useRef<(() => void) | null>(null);
+  const streamingTTSRef = useRef<StreamingTTS | null>(null);
+  const prevStreamRef = useRef<Record<string, string>>({});
 
-  // Auto-speak completed messages with ElevenLabs
+  // Feed streaming chunks to TTS as they arrive (sentence-level streaming)
+  useEffect(() => {
+    if (!session || !ttsEnabled || !currentSpeakerId || !isActive || waitingForHuman) return;
+
+    const participant = session.config.participants.find((p) => p.id === currentSpeakerId);
+    if (!participant || participant.isHuman) return;
+
+    const currentText = streamingContent[currentSpeakerId] ?? "";
+    const prevText = prevStreamRef.current[currentSpeakerId] ?? "";
+
+    if (currentText.length > prevText.length) {
+      const newChunk = currentText.slice(prevText.length);
+
+      // Create StreamingTTS instance if not exists for this speaker
+      if (!streamingTTSRef.current) {
+        const seatIndex = session.config.participants.findIndex((p) => p.id === currentSpeakerId);
+        const voiceId = participant.voiceId || DEFAULT_VOICE_IDS[seatIndex] || DEFAULT_VOICE_IDS[0]!;
+
+        setSpeakingTTS(currentSpeakerId);
+        const speakerId = currentSpeakerId;
+
+        let mouthToggle = false;
+        streamingTTSRef.current = new StreamingTTS(voiceId, (event) => {
+          if (event === "boundary") {
+            mouthToggle = !mouthToggle;
+            setMouthOpen(speakerId, mouthToggle);
+          }
+          if (event === "end") {
+            setSpeakingTTS(null);
+            setMouthOpen(speakerId, false);
+            signalReady();
+            streamingTTSRef.current = null;
+          }
+        }, speechRate);
+      }
+
+      streamingTTSRef.current.pushChunk(newChunk);
+    }
+
+    prevStreamRef.current = { ...prevStreamRef.current, [currentSpeakerId]: currentText };
+  }, [streamingContent, currentSpeakerId, isActive, waitingForHuman, ttsEnabled, session, speechRate, setSpeakingTTS, setMouthOpen, signalReady]);
+
+  // When a turn ends (message added), complete the streaming TTS
   useEffect(() => {
     if (!session) return;
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || lastMsg.id === lastSpokenRef.current) return;
     lastSpokenRef.current = lastMsg.id;
 
-    const seatIndex = session.config.participants.findIndex(
-      (p) => p.id === lastMsg.participantId
-    );
-    if (seatIndex < 0) return;
-    const participant = session.config.participants[seatIndex]!;
+    const participant = session.config.participants.find((p) => p.id === lastMsg.participantId);
 
-    if (participant.isHuman) {
+    if (participant?.isHuman) {
       setTimeout(() => signalReady(), 500);
       return;
     }
 
-    if (!ttsEnabled) return;
-
-    cancelTTSRef.current?.();
-    const voiceId = participant.voiceId || DEFAULT_VOICE_IDS[seatIndex] || DEFAULT_VOICE_IDS[0]!;
-    setSpeakingTTS(lastMsg.participantId);
-
-    let mouthToggle = false;
-    cancelTTSRef.current = speakElevenLabs(lastMsg.content, voiceId, (event) => {
-      if (event === "boundary") {
-        mouthToggle = !mouthToggle;
-        setMouthOpen(lastMsg.participantId, mouthToggle);
-      }
-      if (event === "end") {
-        setSpeakingTTS(null);
-        setMouthOpen(lastMsg.participantId, false);
-        signalReady();
-      }
-    }, speechRate);
-  }, [messages, ttsEnabled, speechRate, session, setSpeakingTTS, setMouthOpen, signalReady]);
+    // Complete the streaming TTS (flush remaining buffer)
+    if (streamingTTSRef.current && ttsEnabled) {
+      streamingTTSRef.current.complete();
+      // Reset stream tracking for this participant
+      prevStreamRef.current = {};
+    } else if (!ttsEnabled) {
+      // No TTS — signal ready handled by store's await:ready handler
+      prevStreamRef.current = {};
+    } else {
+      // Edge case: message arrived but no streaming TTS was started
+      // This shouldn't happen normally, but signal ready just in case
+      prevStreamRef.current = {};
+    }
+  }, [messages, ttsEnabled, session, signalReady]);
 
   useEffect(() => {
     if (!isActive) {
-      cancelTTSRef.current?.();
-      cancelTTSRef.current = null;
+      streamingTTSRef.current?.cancel();
+      streamingTTSRef.current = null;
+      prevStreamRef.current = {};
     }
   }, [isActive]);
 
