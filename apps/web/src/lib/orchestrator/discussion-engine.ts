@@ -5,6 +5,7 @@ import type {
   Message,
   ResponseLength,
   DiscussionQuality,
+  DiscussionMode,
 } from "@roundtable/shared";
 import { MODEL_TIERS } from "@roundtable/shared";
 import { getProviderAdapter } from "../ai/provider-factory";
@@ -12,10 +13,19 @@ import { TurnManager } from "./turn-manager";
 import { nanoid } from "nanoid";
 
 const RESPONSE_LENGTH_CONFIG: Record<ResponseLength, { words: string; maxTokens: number }> = {
-  brief: { words: "~50 words (1-2 sentences max)", maxTokens: 128 },
-  short: { words: "~100 words (2-3 sentences)", maxTokens: 256 },
-  medium: { words: "~200 words (1-2 short paragraphs)", maxTokens: 512 },
-  long: { words: "~400 words (2-4 paragraphs)", maxTokens: 1024 },
+  verbose: { words: "10-20 words (1 punchy sentence)", maxTokens: 64 },
+  brief: { words: "20-40 words (1-2 sentences)", maxTokens: 128 },
+  expansive: { words: "40-100 words (a short paragraph)", maxTokens: 256 },
+};
+
+const DISCUSSION_MODE_PROMPTS: Record<DiscussionMode, string> = {
+  debate: `This is a DEBATE. Take strong positions. Challenge other panelists directly.
+Push back on weak arguments. Be persuasive and assertive. Disagreement is encouraged.`,
+  review: `This is a REVIEW session. Offer constructive, balanced feedback.
+Highlight strengths and weaknesses. Suggest improvements. Be fair and thorough.`,
+  critic: `This is a CRITICAL ANALYSIS. Be sharp, analytical, and demanding.
+Dissect ideas rigorously. Point out flaws, logical gaps, and unexamined assumptions.
+Be intellectually honest — praise what deserves it, but don't soften real critiques.`,
 };
 
 export interface DiscussionCallbacks {
@@ -65,12 +75,11 @@ export class DiscussionEngine {
     callbacks.onComplete();
   }
 
-  /** Original unchaired flow — guaranteed round-robin so everyone speaks */
+  /** Unchaired flow — round-robin + summary at end */
   private async startUnchaired(callbacks: DiscussionCallbacks): Promise<void> {
     const maxTurns = this.config.maxTurns ?? 20;
     const panelists = this.config.participants.filter((p) => !p.isChair);
 
-    // Build flat speaker queue
     const maxRounds = Math.ceil(maxTurns / panelists.length);
     const queue: ParticipantConfig[] = [];
     for (let r = 0; r < maxRounds; r++) {
@@ -78,6 +87,11 @@ export class DiscussionEngine {
     }
 
     await this.runPipelinedQueue(queue.slice(0, maxTurns), callbacks);
+
+    // Generate a summary even without a chair
+    if (this.running && this.transcript.length > 0) {
+      await this.generateSummary(callbacks);
+    }
   }
 
   /** Chaired flow: intro → rounds with guaranteed participation → summary */
@@ -97,20 +111,17 @@ export class DiscussionEngine {
       await this.doChairTurn(chair, "introduce", allPanelists, callbacks);
     }
 
-    // Calculate rounds: each round = all panelists speak + optional chair transition
-    // Reserve 2 turns for intro + summary
-    const turnsPerRound = allPanelists.length + 1; // +1 for chair transition
-    const availableTurns = maxTurns - 2; // minus intro and summary
+    // Calculate rounds
+    const turnsPerRound = allPanelists.length + 1;
+    const availableTurns = maxTurns - 2;
     const maxRounds = Math.max(1, Math.floor(availableTurns / turnsPerRound));
 
-    // Build queue: [round1 panelists, chair transition, round2 panelists, ...]
     const queue: Array<ParticipantConfig | { chairRole: "transition" }> = [];
     for (let round = 0; round < maxRounds; round++) {
       for (const p of allPanelists) queue.push(p);
       if (round < maxRounds - 1) queue.push({ chairRole: "transition" });
     }
 
-    // Run pipelined — panelists use pre-generation, chair transitions run inline
     for (const entry of queue) {
       if (!this.running || this.abortController?.signal.aborted) break;
       if ("chairRole" in entry) {
@@ -123,7 +134,6 @@ export class DiscussionEngine {
     // Chair wrap-up summary
     if (this.running) {
       await this.doChairTurn(chair, "summary", allPanelists, callbacks);
-      // Send summary event with last chair message
       const lastChairMsg = [...this.transcript]
         .reverse()
         .find((m) => m.participantId === chair.id);
@@ -133,11 +143,51 @@ export class DiscussionEngine {
     }
   }
 
-  /**
-   * Run a queue of speakers with pipelining: while the client plays TTS for
-   * the current turn, we pre-generate the next non-human turn's AI response.
-   * This overlaps AI latency with TTS playback.
-   */
+  /** Generate summary without a chair (unchaired mode) */
+  private async generateSummary(callbacks: DiscussionCallbacks): Promise<void> {
+    // Use the first participant's provider to generate a summary
+    const firstParticipant = this.config.participants.find((p) => !p.isHuman);
+    if (!firstParticipant) return;
+
+    const adapter = getProviderAdapter(firstParticipant.provider);
+    const model = this.resolveModel(firstParticipant);
+    const mode = this.config.discussionMode ?? "debate";
+    const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
+
+    const messages: ProviderMessage[] = [
+      {
+        role: "system",
+        content: `You are a neutral summariser. A ${modeLabel} session just concluded on "${this.config.topic}". Provide a concise summary (150-250 words): key points raised, areas of agreement, areas of disagreement, and a concluding thought. Do NOT prefix your response with any label.`,
+      },
+    ];
+
+    for (const entry of this.transcript) {
+      messages.push({
+        role: "user",
+        content: `[${entry.participantName}]: ${entry.content}`,
+      });
+    }
+
+    messages.push({
+      role: "user",
+      content: "Please provide the summary now.",
+    });
+
+    let fullContent = "";
+    const stream = await adapter.generateStream(model, messages, { maxTokens: 512 });
+    const reader = stream.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      fullContent += value;
+    }
+
+    if (fullContent) {
+      callbacks.onSummary(fullContent);
+    }
+  }
+
   private async runPipelinedQueue(
     queue: ParticipantConfig[],
     callbacks: DiscussionCallbacks
@@ -148,7 +198,6 @@ export class DiscussionEngine {
     }
   }
 
-  /** Execute a single participant turn with full error handling and pacing */
   private async doTurn(
     speaker: ParticipantConfig,
     callbacks: DiscussionCallbacks
@@ -194,7 +243,6 @@ export class DiscussionEngine {
     }
   }
 
-  /** Execute a chair turn with role-specific prompting */
   private async doChairTurn(
     chair: ParticipantConfig,
     role: "introduce" | "transition" | "summary",
@@ -235,7 +283,9 @@ export class DiscussionEngine {
   ): Promise<Message> {
     const adapter = getProviderAdapter(chair.provider);
     const model = this.resolveModel(chair);
-    const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "medium"];
+    const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "brief"];
+    const mode = this.config.discussionMode ?? "debate";
+    const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
 
     const panelistNames = panelists.map((p) => p.name).join(", ");
     const panelistDetails = panelists
@@ -244,28 +294,32 @@ export class DiscussionEngine {
 
     let directive: string;
     if (role === "introduce") {
-      directive = `You are the Chair moderating a roundtable discussion.
+      directive = `${chair.systemPrompt}
 
 Topic: "${this.config.topic}"${this.config.description ? `\nContext: ${this.config.description}` : ""}
+Mode: ${modeLabel}
 
 Panelists: ${panelistDetails}
 
-Introduce the topic engagingly and briefly welcome the panel. Set the stage for a productive discussion. Keep it to ${lengthConfig.words}.
+Introduce the topic engagingly and briefly welcome the panel. Set the stage for a productive ${mode} session. Keep it to ${lengthConfig.words}.
 Do NOT prefix your response with your name or any label.`;
     } else if (role === "transition") {
-      directive = `You are the Chair moderating a roundtable discussion on "${this.config.topic}".
+      directive = `${chair.systemPrompt}
 
+Topic: "${this.config.topic}"
+Mode: ${modeLabel}
 Panelists: ${panelistNames}
 
 Based on what has been said so far, provide a brief transition. Highlight a key tension or agreement, then pose a follow-up question or angle to explore. Keep it to ${lengthConfig.words}.
 Do NOT prefix your response with your name or any label.`;
     } else {
-      // summary
-      directive = `You are the Chair moderating a roundtable discussion on "${this.config.topic}".
+      directive = `${chair.systemPrompt}
 
+Topic: "${this.config.topic}"
+Mode: ${modeLabel}
 Panelists: ${panelistNames}
 
-The discussion is wrapping up. Provide a concise summary of the key points raised, note areas of agreement and disagreement, and offer a final thought. Keep it under ~200 words.
+The ${mode} session is wrapping up. Provide a concise summary of the key points raised, note areas of agreement and disagreement, and offer a final thought. Keep it under ~200 words.
 Do NOT prefix your response with your name or any label.`;
     }
 
@@ -273,7 +327,6 @@ Do NOT prefix your response with your name or any label.`;
       { role: "system", content: directive },
     ];
 
-    // Include transcript for context
     for (const entry of this.transcript) {
       if (entry.participantId === chair.id) {
         messages.push({ role: "assistant", content: entry.content });
@@ -325,7 +378,6 @@ Do NOT prefix your response with your name or any label.`;
     }
   }
 
-  /** Client signals it's ready for the next turn (TTS finished) */
   signalReady(): void {
     if (this.readyResolver) {
       this.readyResolver();
@@ -342,7 +394,6 @@ Do NOT prefix your response with your name or any label.`;
   private waitForReady(): Promise<void> {
     return new Promise<void>((resolve) => {
       this.readyResolver = resolve;
-      // Safety timeout — if client never signals, continue after 20s
       setTimeout(() => {
         if (this.readyResolver === resolve) {
           this.readyResolver = null;
@@ -364,7 +415,7 @@ Do NOT prefix your response with your name or any label.`;
     const adapter = getProviderAdapter(speaker.provider);
     const model = this.resolveModel(speaker);
     const messages = this.buildContext(speaker);
-    const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "medium"];
+    const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "brief"];
 
     let fullContent = "";
     const stream = await adapter.generateStream(model, messages, {
@@ -430,12 +481,16 @@ Do NOT prefix your response with your name or any label.`;
       .map((p) => `${p.name}${p.isHuman ? " (human)" : ""}`)
       .join(", ");
 
-    const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "medium"];
+    const lengthConfig = RESPONSE_LENGTH_CONFIG[this.config.responseLength ?? "brief"];
+    const mode = this.config.discussionMode ?? "debate";
+    const modeDirective = DISCUSSION_MODE_PROMPTS[mode] ?? "";
 
     return `${speaker.systemPrompt}
 
-You are "${speaker.name}" participating in a roundtable discussion with: ${otherParticipants}.
+You are "${speaker.name}" participating in a roundtable ${mode} with: ${otherParticipants}.
 Topic: "${this.config.topic}"
+
+${modeDirective}
 
 Guidelines:
 - Stay in character and provide substantive contributions
@@ -446,10 +501,9 @@ Guidelines:
 ${speaker.personality ? `\nPersonality: ${speaker.personality}` : ""}`;
   }
 
-  /** Resolve the model to use for a participant based on quality mode */
   private resolveModel(participant: ParticipantConfig): string {
     const quality = this.config.discussionQuality ?? "balanced";
-    if (quality === "balanced") return participant.model; // use persona default
+    if (quality === "balanced") return participant.model;
     const tier = MODEL_TIERS[participant.provider];
     if (!tier) return participant.model;
     return tier[quality] ?? participant.model;

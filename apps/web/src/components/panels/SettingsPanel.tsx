@@ -97,12 +97,12 @@ export function SettingsPanel() {
         {/* Info rows */}
         <div className="divide-y divide-white/[0.04]">
           <div className="flex items-center justify-between py-3">
-            <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Turn Mode</span>
-            <span className="text-[13px] text-text-secondary capitalize" style={{ fontFamily: "var(--font-ui)" }}>{config.turnMode}</span>
+            <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Mode</span>
+            <span className="text-[13px] text-text-secondary capitalize" style={{ fontFamily: "var(--font-ui)" }}>{config.discussionMode ?? "debate"}</span>
           </div>
           <div className="flex items-center justify-between py-3">
             <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Response Length</span>
-            <span className="text-[13px] text-text-secondary capitalize" style={{ fontFamily: "var(--font-ui)" }}>{config.responseLength ?? "medium"}</span>
+            <span className="text-[13px] text-text-secondary capitalize" style={{ fontFamily: "var(--font-ui)" }}>{config.responseLength ?? "brief"}</span>
           </div>
           <div className="flex items-center justify-between py-3">
             <span className="text-[14px] text-text-primary" style={{ fontFamily: "var(--font-ui)" }}>Max Turns</span>

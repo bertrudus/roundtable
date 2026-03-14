@@ -4,9 +4,11 @@ export type SessionStatus = "configuring" | "active" | "paused" | "completed";
 
 export type TurnMode = "round-robin" | "open-floor" | "directed";
 
-export type ResponseLength = "brief" | "short" | "medium" | "long";
+export type ResponseLength = "verbose" | "brief" | "expansive";
 
 export type DiscussionQuality = "fast" | "balanced" | "quality";
+
+export type DiscussionMode = "debate" | "review" | "critic";
 
 export interface ParticipantConfig {
   id: string;
@@ -30,6 +32,7 @@ export interface SessionConfig {
   turnTimeLimit?: number; // seconds
   responseLength?: ResponseLength;
   discussionQuality?: DiscussionQuality;
+  discussionMode?: DiscussionMode;
   enableChair?: boolean;
   participants: ParticipantConfig[];
 }

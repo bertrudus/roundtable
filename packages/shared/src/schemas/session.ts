@@ -9,8 +9,9 @@ export const participantConfigSchema = z.object({
   personality: z.string().optional(),
   voiceId: z.string().optional(),
   avatarUrl: z.string().optional(),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  color: z.string(),
   isHuman: z.boolean().optional(),
+  isChair: z.boolean().optional(),
 });
 
 export const sessionConfigSchema = z.object({
@@ -19,7 +20,10 @@ export const sessionConfigSchema = z.object({
   turnMode: z.enum(["round-robin", "open-floor", "directed"]),
   maxTurns: z.number().int().positive().optional(),
   turnTimeLimit: z.number().int().positive().optional(),
-  responseLength: z.enum(["brief", "short", "medium", "long"]).optional(),
+  responseLength: z.enum(["verbose", "brief", "expansive"]).optional(),
+  discussionQuality: z.enum(["fast", "balanced", "quality"]).optional(),
+  discussionMode: z.enum(["debate", "review", "critic"]).optional(),
+  enableChair: z.boolean().optional(),
   participants: z
     .array(participantConfigSchema)
     .min(2, "At least 2 participants required")
